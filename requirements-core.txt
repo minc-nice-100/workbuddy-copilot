@@ -1,0 +1,2 @@
+# Platform-neutral student client runtime
+websockets>=12.0

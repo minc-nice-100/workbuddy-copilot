@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="WorkBuddy Copilot 项目背景、目标、工作方式、模块和架构说明。">
+  <title>WorkBuddy Copilot · 项目地图</title>
+  <style>
+    :root {
+      --ink: #121416;
+      --ink-soft: #30363b;
+      --paper: #f4f0e7;
+      --paper-deep: #e9e2d4;
+      --line: rgba(18, 20, 22, .18);
+      --line-light: rgba(244, 240, 231, .18);
+      --orange: #ff7254;
+      --orange-deep: #d84933;
+      --blue: #8fd6e8;
+      --green: #c9ef70;
+      --yellow: #f3d36b;
+      --muted: #a6aaa7;
+      --serif: "Iowan Old Style", "Songti SC", "STSong", Georgia, serif;
+      --sans: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+      --max: 1240px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      content: "";
+      opacity: .38;
+      background-image:
+        linear-gradient(rgba(18, 20, 22, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18, 20, 22, .045) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      content: "";
+      opacity: .08;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; }
+    .wrap { width: min(calc(100% - 48px), var(--max)); margin: 0 auto; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      width: 28px;
+      height: 3px;
+      content: "";
+      background: var(--orange);
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { text-wrap: balance; }
+    h1 {
+      max-width: 850px;
+      margin: 24px 0 26px;
+      font-family: var(--serif);
+      font-size: clamp(48px, 7vw, 96px);
+      font-weight: 500;
+      letter-spacing: -.065em;
+      line-height: .98;
+    }
+    h1 em { color: var(--orange-deep); font-style: normal; }
+    h2 {
+      margin: 14px 0 20px;
+      font-family: var(--serif);
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 500;
+      letter-spacing: -.055em;
+      line-height: 1.04;
+    }
+    h3 {
+      margin-bottom: 10px;
+      font-size: 21px;
+      letter-spacing: -.025em;
+      line-height: 1.25;
+    }
+    .lead {
+      max-width: 690px;
+      color: var(--ink-soft);
+      font-size: clamp(18px, 2.1vw, 24px);
+      line-height: 1.55;
+    }
+    .muted { color: #6f7472; }
+    .small { font-size: 13px; }
+    .mono { font-family: var(--mono); }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(244, 240, 231, .86);
+      backdrop-filter: blur(16px);
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 72px;
+      gap: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--ink);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .brand-mark {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      color: var(--paper);
+      background: var(--ink);
+      font-family: var(--serif);
+      font-size: 18px;
+      line-height: 1;
+    }
+    .brand small {
+      display: block;
+      color: #777d7a;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .main-nav { display: flex; gap: 4px; }
+    .main-nav a {
+      padding: 8px 11px;
+      color: #656b68;
+      border-radius: 999px;
+      font-size: 13px;
+      text-decoration: none;
+      transition: color .2s ease, background .2s ease;
+    }
+    .main-nav a:hover, .main-nav a.active { color: var(--ink); background: var(--paper-deep); }
+    .header-tag {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #676d6a;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      white-space: nowrap;
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.18fr) minmax(300px, .82fr);
+      align-items: end;
+      gap: 70px;
+      min-height: 690px;
+      padding: 112px 0 100px;
+    }
+    .hero::after {
+      position: absolute;
+      right: -4vw;
+      bottom: -80px;
+      width: 330px;
+      height: 330px;
+      border: 1px solid rgba(18, 20, 22, .15);
+      border-radius: 50%;
+      content: "";
+      opacity: .65;
+    }
+    .hero-copy { position: relative; z-index: 1; }
+    .hero-note {
+      max-width: 430px;
+      margin: 0 0 30px;
+      color: #666c69;
+      font-size: 14px;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      color: var(--paper);
+      background: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .button:hover { transform: translateY(-2px); box-shadow: 5px 5px 0 var(--orange); }
+    .button.alt { color: var(--ink); background: transparent; }
+    .hero-board {
+      position: relative;
+      min-height: 410px;
+      padding: 30px;
+      overflow: hidden;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      box-shadow: 16px 16px 0 rgba(18, 20, 22, .13);
+      transform: rotate(1.5deg);
+    }
+    .hero-board::before {
+      position: absolute;
+      inset: 16px;
+      border: 1px solid var(--line-light);
+      content: "";
+    }
+    .board-label {
+      position: relative;
+      z-index: 1;
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .16em;
+    }
+    .hero-board h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 340px;
+      margin-top: 80px;
+      color: var(--paper);
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 1.02;
+    }
+    .signal-list { position: relative; z-index: 1; display: grid; gap: 12px; margin-top: 42px; }
+    .signal {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: #c8cbc6;
+      font-size: 13px;
+    }
+    .signal::before { width: 8px; height: 8px; border-radius: 50%; content: ""; background: var(--orange); }
+    .signal:nth-child(2)::before { background: var(--blue); }
+    .signal:nth-child(3)::before { background: var(--green); }
+    .board-stamp {
+      position: absolute;
+      right: 27px;
+      bottom: 26px;
+      color: var(--yellow);
+      font-family: var(--serif);
+      font-size: 34px;
+      line-height: 1;
+      transform: rotate(-7deg);
+    }
+
+    .section { padding: 126px 0; border-top: 1px solid var(--line); }
+    .section-head { display: grid; grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr); gap: 70px; align-items: start; margin-bottom: 58px; }
+    .section-head p { max-width: 610px; color: #606663; font-size: 17px; }
+    .section-kicker { color: #757a77; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; }
+    .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid var(--ink); background: var(--ink); }
+    .why-card { min-height: 245px; padding: 26px; background: var(--paper); }
+    .why-card:nth-child(2) { background: var(--paper-deep); }
+    .why-card:nth-child(3) { color: var(--paper); background: var(--ink); }
+    .number { margin-bottom: 42px; color: var(--orange-deep); font-family: var(--mono); font-size: 12px; font-weight: 700; }
+    .why-card:nth-child(3) .number { color: var(--green); }
+    .why-card p { margin-bottom: 0; color: #666c69; font-size: 14px; }
+    .why-card:nth-child(3) p { color: #bec1bc; }
+    .pull-quote {
+      max-width: 760px;
+      margin: 68px auto 0;
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 48px);
+      letter-spacing: -.045em;
+      line-height: 1.15;
+      text-align: center;
+    }
+    .pull-quote::before { display: block; margin-bottom: 20px; color: var(--orange); content: "“"; font-size: 72px; line-height: .45; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+    }
+    .flow-step { position: relative; min-height: 310px; padding: 25px 23px 26px; border-right: 1px solid var(--ink); }
+    .flow-step:last-child { border-right: 0; background: var(--ink); color: var(--paper); }
+    .flow-step:nth-child(2) { background: #eae4d9; }
+    .flow-step:nth-child(3) { background: #dff0f1; }
+    .step-no { display: flex; align-items: center; justify-content: space-between; margin-bottom: 62px; font-family: var(--mono); font-size: 11px; font-weight: 700; }
+    .step-no::after { width: 28px; height: 1px; content: ""; background: currentColor; opacity: .5; }
+    .flow-step h3 { max-width: 180px; font-size: 25px; }
+    .flow-step p { margin-bottom: 0; color: #6c726f; font-size: 13px; }
+    .flow-step:last-child p { color: #c5c8c4; }
+    .step-tag { position: absolute; right: 23px; bottom: 23px; color: var(--orange-deep); font-family: var(--mono); font-size: 10px; }
+    .flow-step:last-child .step-tag { color: var(--green); }
+
+    .architecture { background: var(--ink); color: var(--paper); }
+    .architecture .eyebrow { color: #bdc1bb; }
+    .architecture h2 { color: var(--paper); }
+    .architecture .section-head p { color: #b3b7b2; }
+    .arch-map {
+      display: grid;
+      grid-template-columns: 1fr 72px 1.18fr 72px 1fr;
+      align-items: stretch;
+      min-height: 410px;
+      border: 1px solid rgba(244,240,231,.48);
+    }
+    .arch-column { padding: 25px; }
+    .arch-column.student { background: rgba(255, 114, 84, .12); }
+    .arch-column.center { background: rgba(143, 214, 232, .13); }
+    .arch-column.mentor { background: rgba(201, 239, 112, .12); }
+    .arch-type { display: inline-block; margin-bottom: 18px; padding: 5px 8px; color: var(--ink); background: var(--orange); font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+    .center .arch-type { background: var(--blue); }
+    .mentor .arch-type { background: var(--green); }
+    .arch-column h3 { color: var(--paper); font-size: 28px; }
+    .arch-column p { min-height: 70px; color: #bec2bd; font-size: 13px; }
+    .arch-parts { display: grid; gap: 8px; }
+    .arch-part { padding: 11px 12px; border: 1px solid rgba(244,240,231,.25); color: #e6e5dc; font-size: 13px; }
+    .arch-part strong { display: block; margin-bottom: 2px; color: var(--paper); font-size: 14px; }
+    .arch-part span { display: block; color: #aab0aa; font-size: 11px; }
+    .arch-arrow { display: grid; place-items: center; color: var(--yellow); font-family: var(--mono); font-size: 22px; }
+    .arch-arrow span { display: block; font-size: 10px; letter-spacing: .04em; writing-mode: vertical-rl; }
+    .arch-note { display: flex; gap: 15px; margin-top: 22px; padding: 17px 20px; border-left: 4px solid var(--green); color: #c7cbc4; background: rgba(244,240,231,.07); font-size: 13px; }
+    .arch-note strong { color: var(--green); white-space: nowrap; }
+
+    .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .module-card { position: relative; display: flex; flex-direction: column; min-height: 365px; padding: 25px; border: 1px solid var(--ink); background: rgba(244,240,231,.58); }
+    .module-card:nth-child(2) { background: var(--paper-deep); }
+    .module-card:nth-child(3) { background: #e1efdc; }
+    .module-card h3 { margin-top: 54px; font-family: var(--serif); font-size: 34px; font-weight: 500; letter-spacing: -.04em; }
+    .module-card p { color: #646b67; font-size: 14px; }
+    .module-card ul { margin: auto 0 0; padding: 18px 0 0; border-top: 1px solid var(--line); list-style: none; }
+    .module-card li { position: relative; padding-left: 17px; color: #555c58; font-size: 13px; }
+    .module-card li + li { margin-top: 8px; }
+    .module-card li::before { position: absolute; top: .62em; left: 0; width: 6px; height: 6px; border-radius: 50%; content: ""; background: var(--orange); }
+    .module-card:nth-child(2) li::before { background: #4dabbf; }
+    .module-card:nth-child(3) li::before { background: #759f30; }
+    .module-icon { position: absolute; top: 23px; right: 25px; width: 40px; height: 40px; border: 1px solid var(--ink); border-radius: 50%; }
+    .module-icon::before, .module-icon::after { position: absolute; content: ""; background: var(--ink); }
+    .module-icon::before { top: 19px; left: 9px; width: 20px; height: 1px; }
+    .module-icon::after { top: 9px; left: 19px; width: 1px; height: 20px; }
+
+    .boundary-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--ink); }
+    .boundary-col { padding: 28px; }
+    .boundary-col:first-child { border-right: 1px solid var(--ink); background: #eae4d9; }
+    .boundary-col:last-child { background: var(--ink); color: var(--paper); }
+    .boundary-col h3 { font-size: 24px; }
+    .boundary-col p { color: #656b68; font-size: 14px; }
+    .boundary-col:last-child p { color: #b9beb9; }
+    .boundary-list { display: grid; gap: 10px; margin: 25px 0 0; }
+    .boundary-row { display: flex; gap: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
+    .boundary-col:last-child .boundary-row { border-color: rgba(244,240,231,.2); }
+    .boundary-row b { min-width: 92px; color: var(--orange-deep); }
+    .boundary-col:last-child .boundary-row b { color: var(--green); }
+    .boundary-row span { color: #676d69; }
+    .boundary-col:last-child .boundary-row span { color: #c2c7c1; }
+    .source-of-truth { display: flex; align-items: center; gap: 12px; margin-top: 28px; padding: 15px; color: var(--ink); background: var(--blue); font-size: 13px; font-weight: 700; }
+    .source-of-truth::before { width: 10px; height: 10px; border-radius: 50%; content: ""; background: var(--ink); }
+
+    .receipt { background: #e7f0d5; }
+    .receipt .section-head { margin-bottom: 48px; }
+    .receipt-track { display: grid; grid-template-columns: repeat(4, 1fr); border-left: 1px solid var(--ink); border-top: 1px solid var(--ink); }
+    .receipt-step { min-height: 200px; padding: 20px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .receipt-step:nth-child(4) { background: var(--green); }
+    .receipt-step .step-no { margin-bottom: 34px; }
+    .receipt-step h3 { font-size: 18px; }
+    .receipt-step p { color: #616b5d; font-size: 13px; }
+    .receipt-caption { margin-top: 20px; color: #5f6b5b; font-family: var(--mono); font-size: 11px; }
+
+    .status-section { background: var(--paper-deep); }
+    .status-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .83fr); gap: 70px; align-items: start; }
+    .status-list { border-top: 1px solid var(--ink); }
+    .status-row { display: grid; grid-template-columns: 1.1fr .9fr auto; align-items: center; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+    .status-row strong { font-size: 15px; }
+    .status-row span { color: #6d736f; font-size: 13px; }
+    .status-pill { justify-self: end; padding: 4px 8px; border-radius: 999px; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+    .status-pill.done { color: #36531c; background: var(--green); }
+    .status-pill.partial { color: #6b4f16; background: var(--yellow); }
+    .status-pill.blocked { color: #7e2e20; background: #ffad9d; }
+    .join-box { padding: 27px; border: 1px solid var(--ink); color: var(--paper); background: var(--ink); }
+    .join-box h3 { color: var(--green); font-family: var(--serif); font-size: 32px; font-weight: 500; }
+    .join-box p { color: #c4c8c3; font-size: 14px; }
+    .join-list { display: grid; gap: 10px; margin-top: 25px; }
+    .join-item { display: grid; grid-template-columns: 25px 1fr; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(244,240,231,.18); color: #e8e8df; font-size: 13px; }
+    .join-item b { color: var(--orange); font-family: var(--mono); }
+
+    .glossary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 32px; }
+    details { border-bottom: 1px solid var(--line); }
+    summary { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 16px 0; cursor: pointer; list-style: none; font-weight: 800; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--orange-deep); font-family: var(--mono); font-size: 18px; font-weight: 400; }
+    details[open] summary::after { content: "−"; }
+    details p { max-width: 520px; padding: 0 30px 17px 0; margin-bottom: 0; color: #666c69; font-size: 13px; }
+
+    .site-footer { padding: 42px 0 54px; border-top: 1px solid var(--ink); background: var(--ink); color: var(--paper); }
+    .footer-inner { display: flex; align-items: end; justify-content: space-between; gap: 30px; }
+    .footer-inner p { max-width: 540px; margin-bottom: 0; color: #aeb4ae; font-size: 12px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 10px 18px; justify-content: flex-end; }
+    .footer-links a { color: var(--green); font-family: var(--mono); font-size: 11px; text-decoration: none; }
+    .footer-links a:hover { text-decoration: underline; }
+
+    .reading-line { position: fixed; top: 0; left: 0; z-index: 30; width: 0; height: 3px; background: var(--orange); transition: width .1s linear; }
+    .fade-in { opacity: 1; transform: none; }
+    @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Revision: lighter, simpler, more visual sync page */
+    .svg-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .icon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+    .icon-badge { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid currentColor; border-radius: 13px; color: var(--orange-deep); }
+    body { background: #fbfaf7; color: #1b2022; font-size: 17px; line-height: 1.72; }
+    body::before, body::after { display: none; }
+    h1 { font-size: clamp(56px, 8vw, 108px); }
+    h2 { font-size: clamp(41px, 5.4vw, 70px); }
+    .lead { font-size: clamp(20px, 2.25vw, 27px); }
+    .hero { min-height: 650px; padding-top: 90px; }
+    .hero-board { background: #eaf4f2; color: var(--ink); box-shadow: 10px 10px 0 rgba(18, 20, 22, .08); }
+    .hero-board::before { border-color: rgba(18, 20, 22, .18); }
+    .hero-board h2 { color: var(--ink); }
+    .board-label { color: var(--orange-deep); }
+    .signal { color: #4e5754; }
+    .board-stamp { color: var(--orange-deep); }
+    .hero-icon { position: absolute; right: 30px; top: 29px; width: 30px; height: 30px; color: var(--orange-deep); }
+    .section { padding: 104px 0; }
+    .section-head { gap: 48px; margin-bottom: 48px; }
+    .why-card { padding: 28px; }
+    .why-card:nth-child(2) { background: #f7f2e6; }
+    .why-card:nth-child(3) { color: var(--ink); background: #eef6e9; }
+    .why-card:nth-child(3) h3 { color: var(--ink); }
+    .why-card:nth-child(3) p { color: #666c69; }
+    .why-card .icon-badge { margin-bottom: 23px; }
+    .why-card .number { margin-bottom: 18px; }
+    .flow-step { min-height: 285px; }
+    .flow-step:last-child { color: var(--ink); background: #fceee8; }
+    .flow-step:last-child p { color: #6c726f; }
+    .flow-step .step-no { align-items: center; gap: 12px; }
+    .flow-step .step-icon { color: var(--orange-deep); }
+    .flow-step:nth-child(2) .step-icon { color: #4dabbf; }
+    .flow-step:nth-child(3) .step-icon { color: #759f30; }
+    .flow-step:nth-child(4) .step-icon { color: #d84933; }
+    .flow-step:not(:last-child)::after { position: absolute; top: 50%; right: -11px; z-index: 2; color: var(--orange-deep); content: "→"; font-family: var(--mono); font-size: 20px; }
+
+    .architecture { color: var(--ink); background: #eaf4f2; }
+    .architecture .eyebrow { color: #65716d; }
+    .architecture h2 { color: var(--ink); }
+    .architecture .section-head p { color: #5f6b67; }
+    .arch-map { border-color: var(--ink); }
+    .arch-type { display: inline-flex; align-items: center; gap: 7px; }
+    .arch-type .icon { width: 16px; height: 16px; }
+    .arch-column.student { background: #fff0ea; }
+    .arch-column.center { background: #e0f1f3; }
+    .arch-column.mentor { background: #edf6df; }
+    .arch-type { color: var(--ink); }
+    .arch-column h3 { color: var(--ink); }
+    .arch-column p { color: #5f6b67; }
+    .arch-part { border-color: rgba(18, 20, 22, .22); color: #4c5551; }
+    .arch-part strong { color: var(--ink); }
+    .arch-part span { color: #6d7671; }
+    .arch-arrow { color: var(--orange-deep); }
+    .arch-note { border-left-color: var(--orange); color: #4d5854; background: rgba(255,255,255,.52); }
+    .arch-note strong { color: var(--orange-deep); }
+
+    .proof { background: #fffdf8; }
+    .proof-grid { display: grid; grid-template-columns: 1.12fr .88fr; gap: 22px; }
+    .screen-card { margin: 0; padding: 12px; border: 1px solid var(--ink); background: #f3efe7; }
+    .screen-frame { overflow: hidden; border: 1px solid rgba(18,20,22,.22); background: white; aspect-ratio: 16 / 9; }
+    .screen-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+    .screen-card figcaption { display: flex; justify-content: space-between; gap: 18px; padding: 17px 5px 7px; color: #5c6661; font-size: 13px; }
+    .screen-card figcaption strong { color: var(--ink); font-size: 16px; }
+    .screen-card figcaption span { max-width: 250px; text-align: right; }
+    .floating-demo { position: relative; display: grid; height: 100%; place-items: center; overflow: hidden; background: linear-gradient(135deg, #dbe8eb, #f4f0e7); }
+    .floating-demo::before { position: absolute; width: 190px; height: 190px; border: 1px solid rgba(18,20,22,.13); border-radius: 50%; content: ""; }
+    .fake-workbuddy { position: relative; width: 74%; min-height: 63%; padding: 16px; border: 1px solid #7f8a8b; background: rgba(255,255,255,.82); box-shadow: 7px 7px 0 rgba(18,20,22,.12); }
+    .fake-workbuddy::before { display: block; width: 100%; height: 7px; margin-bottom: 18px; border-bottom: 1px solid #bcc4c2; content: "•••"; color: #e2775e; font-size: 14px; line-height: 0; letter-spacing: 5px; }
+    .fake-line { height: 8px; margin: 11px 0; background: #d8e0df; }
+    .fake-line.short { width: 55%; }
+    .float-bubble { position: absolute; right: 9%; bottom: 19%; display: grid; width: 106px; height: 106px; padding: 12px; place-items: center; border: 2px solid var(--ink); border-radius: 28px 28px 8px 28px; color: var(--ink); background: var(--green); box-shadow: 5px 5px 0 rgba(18,20,22,.16); font-size: 12px; font-weight: 800; line-height: 1.25; text-align: center; transform: rotate(4deg); }
+    .float-bubble::before { position: absolute; right: 15px; bottom: -14px; width: 16px; height: 18px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); background: var(--green); content: ""; transform: skew(22deg) rotate(18deg); }
+    .proof-note { margin: 25px 0 0; color: #727a76; font-size: 13px; }
+
+    .tech-drawer { padding: 0 0 104px; background: #fbfaf7; }
+    .tech-details { border: 1px solid var(--ink); background: #f1ede4; }
+    .tech-details > summary { padding: 26px 30px; color: var(--ink); }
+    .tech-details > summary::after { display: none; }
+    .tech-summary { display: flex; align-items: center; gap: 14px; }
+    .tech-summary .icon-badge { color: var(--ink); border-color: var(--ink); }
+    .tech-summary strong { display: block; font-size: 19px; }
+    .tech-summary span { display: block; color: #6c746f; font-size: 13px; font-weight: 400; }
+    .tech-chevron { margin-left: auto; color: var(--orange-deep); font-family: var(--mono); font-size: 22px; font-weight: 400; }
+    .tech-details[open] > summary { border-bottom: 1px solid var(--ink); }
+    .tech-details[open] .tech-chevron { transform: rotate(45deg); }
+    .tech-content .section { padding: 78px 30px; border-top: 0; }
+    .tech-content .section-head { grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr); }
+    .tech-content .wrap { width: 100%; }
+    .tech-content .section:first-child { padding-top: 74px; }
+    .tech-content .section:last-child { padding-bottom: 80px; }
+    .boundary-col:last-child { color: var(--ink); background: #eaf4f2; }
+    .boundary-col:last-child p { color: #5f6b67; }
+    .boundary-col:last-child .boundary-row { border-color: var(--line); }
+    .boundary-col:last-child .boundary-row b { color: var(--orange-deep); }
+    .boundary-col:last-child .boundary-row span { color: #676d69; }
+    .join-box { color: var(--ink); background: #fffdf7; }
+    .join-box h3 { color: var(--ink); }
+    .join-box p, .join-item { color: #5f6863; }
+    .join-item { border-color: var(--line); }
+    .site-footer { background: #f1ece2; color: var(--ink); }
+    .footer-inner p { color: #68716c; }
+    .footer-links a { color: var(--orange-deep); }
+    .module-icon { display: grid; place-items: center; border: 0; border-radius: 13px; color: var(--orange-deep); background: rgba(255,255,255,.55); }
+    .module-card:nth-child(2) .module-icon { color: #4dabbf; }
+    .module-card:nth-child(3) .module-icon { color: #759f30; }
+    .module-icon::before, .module-icon::after { display: none; }
+
+    /* Revision: compact hierarchy and per-topic technical details */
+    .hero { min-height: 540px; padding: 66px 0 74px; gap: 48px; }
+    .hero::after { display: none; }
+    .hero-board { min-height: 340px; padding: 26px; }
+    .hero-board h2 { margin-top: 62px; font-size: clamp(34px, 4vw, 48px); }
+    .section { padding: 78px 0; }
+    .section-head { gap: 34px; margin-bottom: 34px; }
+    .section-head p { font-size: 16px; }
+    h2 { margin-bottom: 14px; }
+    .why-card { min-height: 210px; padding: 22px; }
+    .why-card .icon-badge { margin-bottom: 16px; }
+    .why-card h3 { font-size: 19px; }
+    .pull-quote { margin-top: 45px; font-size: clamp(27px, 3.4vw, 40px); }
+    .flow-step { min-height: 245px; padding: 20px; }
+    .step-no { margin-bottom: 38px; }
+    .flow-step h3 { font-size: 22px; }
+    .arch-map { min-height: 340px; }
+    .arch-column { padding: 18px; }
+    .arch-column p { min-height: 50px; }
+    .arch-part { padding: 9px 10px; }
+    .arch-part span { font-size: 10px; }
+    .proof-grid { gap: 14px; }
+    .screen-card { padding: 8px; }
+    .screen-card figcaption { padding: 12px 4px 4px; }
+    .proof-note { margin-top: 16px; }
+    .tech-drawer { padding: 78px 0; background: #fbfaf7; }
+    .tech-overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+    .tech-detail-block { border: 1px solid var(--ink); background: #f1ede4; }
+    .tech-detail-block[open] { grid-column: 1 / -1; }
+    .tech-detail-block > summary { position: relative; display: flex; min-height: 178px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 20px; color: var(--ink); }
+    .tech-detail-block > summary::after { display: none; }
+    .tech-detail-block:nth-child(2) { background: #eaf4f2; }
+    .tech-detail-block:nth-child(3) { background: #eef6e9; }
+    .tech-detail-block[open] > summary { min-height: auto; border-bottom: 1px solid var(--ink); }
+    .tech-card-top { display: flex; width: 100%; align-items: center; justify-content: space-between; }
+    .tech-card-index { color: var(--orange-deep); font-family: var(--mono); font-size: 11px; font-weight: 700; }
+    .tech-detail-block:nth-child(2) .tech-card-index { color: #4dabbf; }
+    .tech-detail-block:nth-child(3) .tech-card-index { color: #759f30; }
+    .tech-card-copy strong { display: block; margin-bottom: 5px; font-family: var(--serif); font-size: 28px; font-weight: 500; letter-spacing: -.035em; }
+    .tech-card-copy span { display: block; max-width: 240px; color: #606a65; font-size: 13px; line-height: 1.5; }
+    .tech-chevron { position: absolute; right: 20px; bottom: 19px; color: var(--orange-deep); font-family: var(--mono); font-size: 20px; font-weight: 400; }
+    .tech-detail-block[open] .tech-chevron { transform: rotate(45deg); }
+    .tech-detail-body { background: #fffdf8; }
+    .tech-detail-body .section { padding: 46px 24px; border-top: 0; }
+    .tech-detail-body .section-head { grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr); margin-bottom: 28px; }
+    .tech-detail-body .wrap { width: 100%; }
+    .tech-detail-body .module-card { min-height: 300px; }
+    .tech-detail-body .boundary-col { padding: 22px; }
+    .tech-detail-body .receipt-step { min-height: 170px; }
+    .status-layout { gap: 42px; }
+    .status-row { padding: 14px 0; }
+    .join-box { padding: 22px; }
+    .glossary-grid { gap: 4px 28px; }
+    .scale-strip { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 28px; border: 1px solid var(--ink); background: var(--ink); }
+    .scale-stat { min-height: 142px; padding: 17px 19px; background: #fffdf8; }
+    .scale-stat:nth-child(2) { background: #eaf4f2; }
+    .scale-stat:nth-child(3) { background: #eef6e9; }
+    .scale-label { display: block; margin-bottom: 8px; color: #6d7671; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; }
+    .scale-stat strong { display: inline-block; margin-right: 8px; font-family: var(--serif); font-size: 42px; font-weight: 500; letter-spacing: -.05em; line-height: 1; }
+    .scale-stat > span:not(.scale-label) { color: #626c67; font-size: 13px; }
+    .scale-bar { height: 5px; margin-top: 22px; background: #f3c9bd; }
+    .scale-bar i { display: block; height: 100%; background: var(--orange); }
+    .scale-bar.blue { background: #c3e2e7; }
+    .scale-bar.blue i { background: #4dabbf; }
+    .scale-bar.green { background: #d9e8bc; }
+    .scale-bar.green i { background: #759f30; }
+    .route-diagram { display: grid; grid-template-columns: 1fr 1.1fr 1fr 1.1fr 1fr; align-items: center; margin-top: 28px; padding: 17px; border: 1px solid var(--ink); background: #fffdf8; }
+    .route-station { display: grid; grid-template-columns: 42px 1fr; grid-template-rows: auto auto; column-gap: 11px; align-items: center; padding: 15px; border: 1px solid var(--ink); }
+    .route-station.student { background: #fff0ea; }
+    .route-station.center { background: #e0f1f3; }
+    .route-station.mentor { background: #edf6df; }
+    .route-icon { display: grid; width: 34px; height: 34px; grid-row: span 2; place-items: center; border-radius: 10px; color: var(--orange-deep); background: rgba(255,255,255,.64); }
+    .route-station.center .route-icon { color: #4dabbf; }
+    .route-station.mentor .route-icon { color: #759f30; }
+    .route-station strong { font-size: 16px; }
+    .route-station small { color: #69736d; font-size: 11px; line-height: 1.45; }
+    .route-line { display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--orange-deep); font-family: var(--mono); font-size: 11px; }
+    .route-line b { font-size: 20px; font-weight: 400; }
+    .route-line.reverse { color: #759f30; }
+
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+    @media (max-width: 940px) {
+      .hero { grid-template-columns: 1fr; gap: 50px; min-height: auto; padding: 86px 0 90px; }
+      .hero-board { max-width: 580px; justify-self: end; }
+      .section-head, .status-layout { grid-template-columns: 1fr; gap: 25px; }
+      .arch-map { grid-template-columns: 1fr; }
+      .arch-arrow { min-height: 45px; border-top: 1px solid rgba(244,240,231,.2); border-bottom: 1px solid rgba(244,240,231,.2); }
+      .arch-arrow span { writing-mode: initial; }
+      .module-grid { grid-template-columns: 1fr; }
+      .module-card { min-height: 300px; }
+    }
+    @media (max-width: 680px) {
+      .wrap { width: min(calc(100% - 30px), var(--max)); }
+      .site-header { position: static; }
+      .header-inner { min-height: auto; padding: 15px 0; align-items: flex-start; }
+      .main-nav, .header-tag { display: none; }
+      h1 { font-size: clamp(47px, 15vw, 74px); }
+      .hero { padding-top: 68px; }
+      .hero-board { min-height: 350px; padding: 24px; transform: none; }
+      .hero-board h2 { margin-top: 58px; font-size: 37px; }
+      .section { padding: 84px 0; }
+      .why-grid, .flow, .boundary-grid, .receipt-track, .glossary-grid { grid-template-columns: 1fr; }
+      .why-card, .flow-step { min-height: auto; border-right: 0; border-bottom: 1px solid var(--ink); }
+      .why-card:last-child, .flow-step:last-child { border-bottom: 0; }
+      .step-no { margin-bottom: 36px; }
+      .flow-step { min-height: 220px; }
+      .flow-step:not(:last-child)::after { top: auto; right: auto; bottom: -14px; left: 50%; content: "↓"; }
+      .scale-strip { grid-template-columns: 1fr; }
+      .route-diagram { grid-template-columns: 1fr; gap: 8px; }
+      .route-line { min-height: 25px; flex-direction: column; gap: 0; }
+      .route-line b { transform: rotate(90deg); }
+      .tech-overview-grid { grid-template-columns: 1fr; }
+      .tech-detail-block[open] { grid-column: auto; }
+      .proof-grid { grid-template-columns: 1fr; }
+      .screen-card figcaption { align-items: flex-start; flex-direction: column; gap: 5px; }
+      .screen-card figcaption span { max-width: none; text-align: left; }
+      .tech-content .section { padding-right: 17px; padding-left: 17px; }
+      .tech-details > summary { padding: 22px 18px; }
+      .boundary-col:first-child { border-right: 0; border-bottom: 1px solid var(--ink); }
+      .receipt-step { min-height: 165px; }
+      .status-row { grid-template-columns: 1fr auto; gap: 6px 15px; }
+      .status-row span { grid-column: 1 / -1; }
+      .status-pill { grid-column: 2; grid-row: 1; }
+      .footer-inner { align-items: flex-start; flex-direction: column; }
+      .footer-links { justify-content: flex-start; }
+    }
+    @media print {
+      .site-header, .hero-actions, .main-nav, .reading-line { display: none !important; }
+      body { background: white; }
+      body::before, body::after { display: none; }
+      .section, .hero { padding: 42px 0; }
+      .architecture, .site-footer, .hero-board, .join-box { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.6"/></symbol>
+    <symbol id="i-hook" viewBox="0 0 24 24"><path d="M7 5v6a5 5 0 0 0 10 0V7"/><path d="M7 5H4m3 0v3m10-1h3m-3 0v3"/><path d="M12 16v4m-3 0h6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7L12 2Z"/><path d="M19 16v5m2.5-2.5h-5"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8m-4-4v4"/><circle cx="7" cy="8" r="1"/><path d="M10 8h7"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="5" rx="1"/><rect x="4" y="10" width="16" height="5" rx="1"/><rect x="4" y="17" width="16" height="4" rx="1"/><path d="M7 5.5h.01M7 12.5h.01M7 19h.01"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0M14 18a4.5 4.5 0 0 1 6.5 1"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.8 4v-4.1a2.5 2.5 0 0 1-2.2-2.4v-8Z"/><path d="M8 8h8M8 12h5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 20 6v5.3c0 4.6-3.1 7.8-8 9.7-4.9-1.9-8-5.1-8-9.7V6l8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-4.8"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m3 11 17-7-4 16-4.1-6.1L3 11Z"/><path d="m11.9 13.9 5.5-6.3"/></symbol>
+  </svg>
+  <div class="reading-line" aria-hidden="true"></div>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top" aria-label="回到页面顶部">
+        <span class="brand-mark">W</span>
+        <span>WorkBuddy Copilot <small>Project map · 2026</small></span>
+      </a>
+      <nav class="main-nav" aria-label="页面章节">
+        <a href="#why">为什么</a>
+        <a href="#how">怎么做</a>
+        <a href="#architecture">架构</a>
+        <a href="#tech">技术细节</a>
+        <a href="#status">现状</a>
+      </nav>
+      <span class="header-tag">内部同步版</span>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="wrap hero">
+      <div class="hero-copy fade-in">
+        <span class="eyebrow">PLC learning infrastructure</span>
+        <h1>把“学习过程”变成<br><em>看得见的闭环</em></h1>
+        <p class="lead">WorkBuddy Copilot 是一个面向 PLC 学习场景的实时学习辅助系统：学员继续使用熟悉的 WorkBuddy，系统在旁边观察学习信号、识别卡点，并让学员和导师都能在合适的时机得到提醒。</p>
+        <p class="hero-note">它不替学员完成任务，也不改写 WorkBuddy 的对话流程。它做的是把原本藏在聊天记录里的学习状态，变成可以被及时看见、理解和回应的信息。</p>
+        <div class="hero-actions">
+          <a class="button" href="#how">先看它怎么工作 <span aria-hidden="true">→</span></a>
+          <a class="button alt" href="#join">我想参与开发</a>
+        </div>
+      </div>
+      <aside class="hero-board fade-in" aria-label="项目核心判断">
+        <svg class="icon hero-icon" aria-hidden="true"><use href="#i-eye"></use></svg>
+        <div class="board-label">THE CORE PROBLEM</div>
+        <h2>聊天结束了，学习真的结束了吗？</h2>
+        <div class="signal-list">
+          <div class="signal">看见“问了什么”</div>
+          <div class="signal">理解“卡在哪里”</div>
+          <div class="signal">及时做一个小干预</div>
+        </div>
+        <div class="board-stamp">observe<br>→ respond</div>
+      </aside>
+    </section>
+
+    <section class="section" id="why">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">01 · Why</span>
+            <h2>为什么需要它？</h2>
+          </div>
+          <p>AI 辅助编程让“得到答案”变得很快，但学习的关键不只在答案。一个人可能是在理解后推进，也可能是在反复试错、复制粘贴，或者已经卡住却没有及时求助。</p>
+        </div>
+        <div class="why-grid">
+          <article class="why-card">
+            <div class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-eye"></use></svg></div>
+            <div class="number">01 / 学习过程变隐形</div>
+            <h3>只看最终产出，不知道中间发生了什么</h3>
+            <p>同样一段代码、同样一个“完成”，背后可能对应完全不同的理解程度和学习状态。</p>
+          </article>
+          <article class="why-card">
+            <div class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-people"></use></svg></div>
+            <div class="number">02 / 导师观察有上限</div>
+            <h3>45 位学员同时前进，靠人工很难全程跟上</h3>
+            <p>导师需要一个全局视角，先看到值得关注的信号，再决定把时间花在哪里。</p>
+          </article>
+          <article class="why-card">
+            <div class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-message"></use></svg></div>
+            <div class="number">03 / 反馈总是来得太晚</div>
+            <h3>卡点发生在当下，复盘往往已经是事后</h3>
+            <p>越早发现低效对话、反复绕圈或理解断点，越有机会用很小的提醒避免大段时间浪费。</p>
+          </article>
+        </div>
+        <div class="scale-strip" aria-label="项目协作规模示意">
+          <div class="scale-stat"><span class="scale-label">学习现场</span><strong>45</strong><span>位学员同时前进</span><div class="scale-bar"><i style="width: 88%"></i></div></div>
+          <div class="scale-stat"><span class="scale-label">观察与回应</span><strong>17–18</strong><span>位导师共享全局视图</span><div class="scale-bar blue"><i style="width: 52%"></i></div></div>
+          <div class="scale-stat"><span class="scale-label">统一事实</span><strong>1</strong><span>个中心服务承接所有状态</span><div class="scale-bar green"><i style="width: 22%"></i></div></div>
+        </div>
+        <p class="pull-quote">我们不替学员回答，而是帮助大家更早看见“正在发生什么”。</p>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">02 · How it works</span>
+            <h2>一条低打扰的学习闭环</h2>
+          </div>
+          <p>系统沿着 WorkBuddy 已经存在的对话生命周期工作。采集发生在旁路，分析集中在服务端，结果分别回到学员浮标和导师观察台。</p>
+        </div>
+        <div class="flow">
+          <article class="flow-step">
+            <div class="step-no"><svg class="icon step-icon" aria-hidden="true"><use href="#i-hook"></use></svg><span>01 / 捕捉信号</span></div>
+            <h3>学员照常使用 WorkBuddy</h3>
+            <p>Hook 在“学员发出问题”和“AI 回复完成”时收到通知，只带走必要的对话尾部，不阻塞原本的工作流。</p>
+            <span class="step-tag">hook → spool</span>
+          </article>
+          <article class="flow-step">
+            <div class="step-no"><svg class="icon step-icon" aria-hidden="true"><use href="#i-spark"></use></svg><span>02 / 理解上下文</span></div>
+            <h3>中心服务把零散事件串起来</h3>
+            <p>服务端保存完整的学习过程，调用 LLM 生成学习诊断、技术助教建议、AI 回答摘要和严重程度。</p>
+            <span class="step-tag">store + analysis</span>
+          </article>
+          <article class="flow-step">
+            <div class="step-no"><svg class="icon step-icon" aria-hidden="true"><use href="#i-monitor"></use></svg><span>03 / 看见状态</span></div>
+            <h3>学员与导师看到不同视角</h3>
+            <p>学员浮标得到低频、即时的提示；导师观察台看到全体学员的状态、会话和时间线。</p>
+            <span class="step-tag">float + mentor desk</span>
+          </article>
+          <article class="flow-step">
+            <div class="step-no"><svg class="icon step-icon" aria-hidden="true"><use href="#i-send"></use></svg><span>04 / 形成回应</span></div>
+            <h3>导师可以定向发一条文字提示</h3>
+            <p>导师消息只送给指定学员。在线实时到达，离线后也能补拉；只有学员真正处理并回执，才算送达。</p>
+            <span class="step-tag">observe → respond</span>
+          </article>
+        </div>
+        <div class="route-diagram" aria-label="事件与反馈路线图">
+          <div class="route-station student"><span class="route-icon"><svg class="icon" aria-hidden="true"><use href="#i-hook"></use></svg></span><strong>学员端</strong><small>捕捉信号<br>展示轻量提醒</small></div>
+          <div class="route-line"><span>事件上报</span><b>→</b></div>
+          <div class="route-station center"><span class="route-icon"><svg class="icon" aria-hidden="true"><use href="#i-server"></use></svg></span><strong>中心服务</strong><small>保存事实<br>分析上下文</small></div>
+          <div class="route-line reverse"><span>结果 / 提示</span><b>→</b></div>
+          <div class="route-station mentor"><span class="route-icon"><svg class="icon" aria-hidden="true"><use href="#i-monitor"></use></svg></span><strong>导师端</strong><small>观察全局<br>定向回应</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section architecture" id="architecture">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">03 · Architecture</span>
+            <h2>三块拼起来，才是完整系统</h2>
+          </div>
+          <p>可以把它理解成“学员端的信使 + 中心服务的大脑 + 导师端的观察台”。三者通过公网连接，但每一块都有清楚的责任边界。</p>
+        </div>
+        <div class="arch-map" aria-label="学员端、中心服务、导师端架构图">
+          <div class="arch-column student">
+            <span class="arch-type"><svg class="icon" aria-hidden="true"><use href="#i-hook"></use></svg> ON STUDENT MACHINE</span>
+            <h3>学员端</h3>
+            <p>不改变学员已有工具，只在旁边采集和呈现。</p>
+            <div class="arch-parts">
+              <div class="arch-part"><strong>Hook</strong><span>收到 WorkBuddy 事件的轻量脚本</span></div>
+              <div class="arch-part"><strong>Student Core</strong><span>发送、重连、去重、保存回执的共享核心</span></div>
+              <div class="arch-part"><strong>浮标 / 平台适配</strong><span>macOS 先接入，Windows 正在过实机验证</span></div>
+            </div>
+          </div>
+          <div class="arch-arrow" aria-hidden="true"><span>HTTPS / WSS</span>→</div>
+          <div class="arch-column center">
+            <span class="arch-type"><svg class="icon" aria-hidden="true"><use href="#i-server"></use></svg> PUBLIC CENTER SERVICE</span>
+            <h3>中心服务</h3>
+            <p>把多台学员机的数据汇总成一个可靠的学习视图。</p>
+            <div class="arch-parts">
+              <div class="arch-part"><strong>接入与鉴权</strong><span>接收上报、区分学员和导师权限</span></div>
+              <div class="arch-part"><strong>业务服务 + LLM 分析</strong><span>把原始事件变成诊断、摘要和提示</span></div>
+              <div class="arch-part"><strong>EventBus + WebSocket</strong><span>把结果广播给导师，定向给学员</span></div>
+              <div class="arch-part"><strong>copilot.db</strong><span>服务器唯一权威数据源</span></div>
+            </div>
+          </div>
+          <div class="arch-arrow" aria-hidden="true"><span>实时推送 / 定向消息</span>↔</div>
+          <div class="arch-column mentor">
+            <span class="arch-type"><svg class="icon" aria-hidden="true"><use href="#i-monitor"></use></svg> INSTRUCTOR VIEW</span>
+            <h3>导师端</h3>
+            <p>让导师先看全局，再对单个学员做轻量干预。</p>
+            <div class="arch-parts">
+              <div class="arch-part"><strong>观察台</strong><span>学员列表、会话、时间线、状态</span></div>
+              <div class="arch-part"><strong>实时更新</strong><span>新问题、AI 摘要、分析结果即时出现</span></div>
+              <div class="arch-part"><strong>定向消息</strong><span>给指定学员发送文字提示并跟踪送达</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-note"><strong>一条重要边界</strong><span>服务器绝不去读取学员机上的 WorkBuddy 数据库、JSONL 或本地文件系统。学员机只把事件上报到中心，中心只认自己的 <span class="mono">copilot.db</span>。</span></div>
+      </div>
+    </section>
+
+    <section class="section proof" id="screens">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">In the real world</span>
+            <h2>最后，它会长什么样？</h2>
+          </div>
+          <p>这不是只存在于架构图里的系统。导师在浏览器里看全班，学员在 WorkBuddy 旁边收到轻量提醒；两边看到的是同一条学习过程的不同视角。</p>
+        </div>
+        <div class="proof-grid">
+          <figure class="screen-card">
+            <div class="screen-frame"><img src="design/ui-verification/05-mentor-message.png" alt="导师观察台：左侧是学员和会话列表，右侧是学习时间线与导师提示" onerror="this.onerror=null;this.src='/files/mentor-ui.png'"></div>
+            <figcaption><strong>导师观察台</strong><span>全局看状态、会话和时间线；需要时给指定学员发一条提示。</span></figcaption>
+          </figure>
+          <figure class="screen-card">
+            <div class="screen-frame floating-demo" role="img" aria-label="学员端界面静态占位">
+              <div class="fake-workbuddy"><strong>学员端界面</strong><p>学员端界面在受控演示环境查看</p></div>
+            </div>
+            <figcaption><strong>学员端 WorkBuddy + 浮标</strong><span>为保护隐私，此处保留静态占位。</span></figcaption>
+          </figure>
+        </div>
+        <p class="proof-note">两张图放在一起，能直观看到系统的两种视角：导师看全局，学员在原来的工作界面里得到轻量入口。</p>
+      </div>
+    </section>
+
+    <section class="tech-drawer" id="tech">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">04–06 · For builders</span>
+            <h2>先看结论，详情按需展开</h2>
+          </div>
+          <p>普通读者看到这里，先记住三句话就够了：谁负责什么、数据只认哪里、消息怎样才算送达。技术同事可以点击对应卡片继续往下看。</p>
+        </div>
+        <div class="tech-overview-grid">
+          <details class="tech-detail-block" id="modules-detail">
+            <summary>
+              <span class="tech-card-top"><span class="tech-card-index">04</span><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-hook"></use></svg></span></span>
+              <span class="tech-card-copy"><strong>模块分工</strong><span>学员端送到、中心服务判断、导师端回应。</span></span>
+              <span class="tech-chevron" aria-hidden="true">+</span>
+            </summary>
+            <div class="tech-detail-body">
+    <section class="section" id="modules">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">04 · Modules</span>
+            <h2>每个模块只做好一件事</h2>
+          </div>
+          <p>协作开发时，可以先按这三个边界找到自己的位置。模块内部可以继续演进，但不要让“采集、分析、呈现、发送”互相穿透。</p>
+        </div>
+        <div class="module-grid">
+          <article class="module-card">
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-hook"></use></svg></span>
+            <span class="eyebrow">01 / Student</span>
+            <h3>学员端：可靠地把信号送到</h3>
+            <p>像一个不打扰工作的信使：先在本地稳稳接住，再通过网络送到中心。</p>
+            <ul>
+              <li>Hook 保持 stdlib-only、fire-and-forget</li>
+              <li>本地 spool 应对断网和进程重启</li>
+              <li>共享核心让 macOS / Windows 复用同一套逻辑</li>
+            </ul>
+          </article>
+          <article class="module-card">
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-server"></use></svg></span>
+            <span class="eyebrow">02 / Center</span>
+            <h3>中心服务：把事件变成判断</h3>
+            <p>像一个学习信息中枢：保存事实、调用分析、统一分发，不依赖某一台学员机。</p>
+            <ul>
+              <li>Service 负责编排业务流程</li>
+              <li>Store 负责唯一权威数据</li>
+              <li>EventBus 让新增推送渠道不必改业务核心</li>
+            </ul>
+          </article>
+          <article class="module-card">
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-monitor"></use></svg></span>
+            <span class="eyebrow">03 / Mentor</span>
+            <h3>导师端：从全局观察到精准回应</h3>
+            <p>像一块班级控制台：先判断哪里值得关注，再把一句有上下文的提示送到对应的人。</p>
+            <ul>
+              <li>观察全部学员，不预设固定负责关系</li>
+              <li>实时看状态、会话和时间线</li>
+              <li>消息按 student_id 定向，送达有回执</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+          </div>
+        </details>
+
+        <details class="tech-detail-block" id="boundary-detail">
+          <summary>
+            <span class="tech-card-top"><span class="tech-card-index">05</span><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg></span></span>
+            <span class="tech-card-copy"><strong>数据边界</strong><span>学员机采集暂存，中心服务解析并统一保存。</span></span>
+            <span class="tech-chevron" aria-hidden="true">+</span>
+          </summary>
+          <div class="tech-detail-body">
+
+    <section class="section" id="boundary">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">05 · Data boundary</span>
+            <h2>数据从哪里来，应该去哪儿？</h2>
+          </div>
+          <p>这是协作时最需要共同遵守的边界。它决定了系统能不能从“单机演示”走向多机使用，也决定了出了问题时我们能不能追溯。</p>
+        </div>
+        <div class="boundary-grid">
+          <div class="boundary-col">
+            <h3>学员机负责：采集 + 暂存</h3>
+            <p>本地知道 WorkBuddy 的发生了什么，但不把本地路径和数据库访问交给服务器。</p>
+            <div class="boundary-list">
+              <div class="boundary-row"><b>读取</b><span>只读取被允许的 transcript 尾部字节</span></div>
+              <div class="boundary-row"><b>保存</b><span>原子写入本地 spool，等待发送</span></div>
+              <div class="boundary-row"><b>失败时</b><span>异常降级并返回 0，不阻塞 WorkBuddy</span></div>
+            </div>
+          </div>
+          <div class="boundary-col">
+            <h3>中心服务负责：解析 + 统一事实</h3>
+            <p>所有学员的学习状态都在中心汇总，页面和分析只读取中心自己的数据。</p>
+            <div class="boundary-list">
+              <div class="boundary-row"><b>接收</b><span>通过 student token 上报事件</span></div>
+              <div class="boundary-row"><b>分析</b><span>在服务端解析、入库并调用 LLM</span></div>
+              <div class="boundary-row"><b>追溯</b><span>完整对话与分析结果可以对应到会话</span></div>
+            </div>
+            <div class="source-of-truth">唯一权威源：copilot.db</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+          </div>
+        </details>
+
+        <details class="tech-detail-block" id="message-detail">
+          <summary>
+            <span class="tech-card-top"><span class="tech-card-index">06</span><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-send"></use></svg></span></span>
+            <span class="tech-card-copy"><strong>消息送达</strong><span>先保存、再推送、后回执，断线也能恢复。</span></span>
+            <span class="tech-chevron" aria-hidden="true">+</span>
+          </summary>
+          <div class="tech-detail-body">
+
+    <section class="section receipt" id="message">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">06 · Delivery semantics</span>
+            <h2>“看到消息”不等于“送达”</h2>
+          </div>
+          <p>导师消息是这个项目里最容易被低估的一条链路。WebSocket 只能负责快，真正的送达要以学员端处理成功后的回执为准。</p>
+        </div>
+        <div class="receipt-track">
+          <article class="receipt-step">
+            <div class="step-no">01 / 写入</div>
+            <h3>服务端先保存消息</h3>
+            <p>即使学员暂时离线，消息也不会因为“当下没连上”而消失。</p>
+          </article>
+          <article class="receipt-step">
+            <div class="step-no">02 / 推送</div>
+            <h3>在线时走实时通道</h3>
+            <p>在线的学员立刻看到；断线的学员之后通过补拉恢复。</p>
+          </article>
+          <article class="receipt-step">
+            <div class="step-no">03 / 处理</div>
+            <h3>学员端先保存“待回执”</h3>
+            <p>只有真正渲染和处理过的消息，才有资格进入下一步。</p>
+          </article>
+          <article class="receipt-step">
+            <div class="step-no">04 / 确认</div>
+            <h3>服务端收到 ack 才标记送达</h3>
+            <p>这个顺序保证重连、重启、响应丢失时仍然可以恢复。</p>
+          </article>
+        </div>
+        <div class="receipt-caption">at-least-once delivery · 至少一次投递 · 不把“发送成功”误当作“送达成功”</div>
+      </div>
+    </section>
+
+          </div>
+        </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section status-section" id="status">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">07 · Current state</span>
+            <h2>项目现在走到哪一步？</h2>
+          </div>
+          <p>核心链路已经落地并经过自动回归验证；接下来更重要的是把真实环境、跨平台体验和协作入口继续补齐。</p>
+        </div>
+        <div class="status-layout">
+          <div class="status-list" aria-label="项目交付状态">
+            <div class="status-row"><strong>中心服务 + copilot.db</strong><span>多机上报、分析、统一数据源</span><em class="status-pill done">已实现</em></div>
+            <div class="status-row"><strong>共享 Student Core</strong><span>spool、重连、去重、消息回执</span><em class="status-pill done">已实现</em></div>
+            <div class="status-row"><strong>macOS 学员端</strong><span>原生浮标 + 显式平台适配器</span><em class="status-pill partial">已接入 / 待实机冒烟</em></div>
+            <div class="status-row"><strong>Windows 学员端</strong><span>已有骨架和平台合同，缺真实 WorkBuddy 证据</span><em class="status-pill blocked">BLOCKED</em></div>
+            <div class="status-row"><strong>导师反向消息</strong><span>持久化、补拉、定向投递、可靠回执</span><em class="status-pill done">已实现</em></div>
+          </div>
+          <aside class="join-box" id="join">
+            <span class="eyebrow">Open collaboration</span>
+            <h3>新同事可以从哪里加入？</h3>
+            <p>先理解边界，再认领一个完整的小闭环。下面这些方向都能独立验证，也能直接提升下一轮 rollout 的质量。</p>
+            <div class="join-list">
+              <div class="join-item"><b>01</b><span><strong>Windows 实机验证</strong>：补齐 W0/W1 证据，推动 Windows 发布门从 blocked 走向可判断。</span></div>
+              <div class="join-item"><b>02</b><span><strong>导师观察台体验</strong>：优化状态、时间线、消息发送与错误提示，让导师更快做判断。</span></div>
+              <div class="join-item"><b>03</b><span><strong>分析与重试体验</strong>：围绕 pending / running / done / failed，把后台分析的不确定性讲清楚。</span></div>
+              <div class="join-item"><b>04</b><span><strong>测试与可观测性</strong>：沿着 P0/P1/P3 验证，确保“功能坏了时测试真的会红”。</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="glossary">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">08 · Glossary</span>
+            <h2>几个词，先这样理解</h2>
+          </div>
+          <p>第一次参与时，不需要一次读完所有代码。先把这些词和它们在系统里的位置对上号，再从对应模块往下钻。</p>
+        </div>
+        <div class="glossary-grid">
+          <details open><summary>Hook</summary><p>WorkBuddy 在关键事件发生时调用的小脚本。它只负责把事件交给本地发送链路，不负责分析，也不应该拖慢 WorkBuddy。</p></details>
+          <details><summary>Student Core</summary><p>跨平台的学员端共享核心，负责本地暂存、网络发送、重连、去重和消息回执。它不依赖 macOS 或 Windows 的界面 API。</p></details>
+          <details><summary>copilot.db</summary><p>中心服务自己的 SQLite 数据库，是服务器唯一权威源。学员机上的 WorkBuddy 数据库不属于服务器的读写范围。</p></details>
+          <details><summary>EventBus</summary><p>服务内部的消息分发器。业务服务发布“分析完成”或“导师消息”等事件，浮标和导师台分别订阅自己需要的部分。</p></details>
+          <details><summary>WebSocket / WSS</summary><p>一种保持连接的实时通道。它让新事件可以主动推到客户端，但不单独承担可靠送达；可靠性由持久化和回执保证。</p></details>
+          <details><summary>单 worker</summary><p>当前服务必须以单个应用进程运行，因为 EventBus 和连接注册表在进程内。拆成多个 worker 会让广播和定向消息路由失去统一视图。</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>内部同步版 · 内容基于项目 README、目标架构、PRD 与技术原理文档整理，状态截至 2026-07-12。它是理解项目的入口，不替代权威设计和测试文档。</p>
+      <div class="footer-links">
+        <a href="target-architecture.md">目标架构</a>
+        <a href="prd.md">PRD</a>
+        <a href="test-plan-v2.md">测试方案 v2</a>
+        <a href="dev-log.md">开发日志</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const line = document.querySelector('.reading-line');
+      const navLinks = [...document.querySelectorAll('.main-nav a')];
+      const sections = navLinks.map(link => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+      const updateReadingLine = () => {
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        line.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      };
+      const setActive = (id) => navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${id}`));
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setActive(visible.target.id);
+      }, { rootMargin: '-18% 0px -62% 0px', threshold: [0, .2, .5, 1] });
+      sections.forEach(section => observer.observe(section));
+      window.addEventListener('scroll', updateReadingLine, { passive: true });
+      window.addEventListener('resize', updateReadingLine);
+      updateReadingLine();
+    })();
+  </script>
+</body>
+</html>

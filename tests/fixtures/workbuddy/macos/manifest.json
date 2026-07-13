@@ -1,0 +1,39 @@
+{
+  "sessions": [
+    {
+      "id": "fixture-session-space",
+      "cwd": "fixtures/fixture-student/workspaces/fixture-space",
+      "title": "Fixture space conversation",
+      "custom_title": "Fixture workspace task",
+      "created_at": 1710000000000,
+      "last_activity_at": 1710000020000,
+      "deleted_at": null
+    },
+    {
+      "id": "fixture-session-task",
+      "cwd": "fixtures/fixture-student/workspaces/fixture-task",
+      "title": "Fixture task conversation",
+      "custom_title": null,
+      "created_at": 1710000001000,
+      "last_activity_at": 1710000010000,
+      "deleted_at": null
+    }
+  ],
+  "workspaces": [
+    {
+      "path": "fixtures/fixture-student/workspaces/fixture-space",
+      "name": "Fixture workspace",
+      "last_opened_at": 1710000030000
+    }
+  ],
+  "transcripts": [
+    {
+      "relative_path": "projects/fixture-student/metadata-name.jsonl",
+      "session_id": "fixture-session-space",
+      "lines": [
+        {"type": "message", "session_id": "fixture-session-space", "role": "user", "content": "Please explain this fixture example."},
+        {"type": "function_call", "session_id": "fixture-session-space", "name": "read_fixture"}
+      ]
+    }
+  ]
+}

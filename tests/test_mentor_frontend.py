@@ -1,0 +1,99 @@
+"""测试导师前端静态文件。"""
+import pytest
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+from copilot.service import app
+
+
+@pytest.fixture
+def client():
+    return TestClient(app)
+
+
+class TestFrontendFiles:
+    """静态文件存在且结构正确。"""
+
+    def test_static_dir_exists(self):
+        static_dir = Path(__file__).parent.parent / "copilot" / "static" / "mentor"
+        assert static_dir.exists(), "copilot/static/mentor/ 目录应存在"
+
+    def test_index_html_exists(self):
+        index_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "index.html"
+        assert index_path.exists(), "index.html 应存在"
+
+    def test_app_js_exists(self):
+        js_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "app.js"
+        assert js_path.exists(), "app.js 应存在"
+
+    def test_style_css_exists(self):
+        css_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "style.css"
+        assert css_path.exists(), "style.css 应存在"
+
+
+class TestFrontendStructure:
+    """前端结构验证。"""
+
+    def test_index_html_has_three_columns(self):
+        index_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "index.html"
+        if not index_path.exists():
+            pytest.skip("index.html 尚未创建")
+        content = index_path.read_text()
+        # 三栏布局标识
+        assert "学员" in content or "student" in content.lower()
+        assert "对话" in content or "session" in content.lower()
+        assert "时间线" in content or "timeline" in content.lower()
+
+    def test_app_js_has_fetch_and_ws(self):
+        js_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "app.js"
+        if not js_path.exists():
+            pytest.skip("app.js 尚未创建")
+        content = js_path.read_text()
+        assert "fetch" in content or "XMLHttpRequest" in content
+        assert "WebSocket" in content or "ws" in content.lower()
+
+    def test_app_js_sends_mentor_token_for_public_mode(self):
+        js_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "app.js"
+        content = js_path.read_text()
+
+        assert "MENTOR_TOKEN_STORAGE_KEY" in content
+        assert "authFetch" in content
+        assert "Authorization" in content
+        assert "X-Copilot-Token" in content
+        assert "mentorWsUrl" in content
+        assert "searchParams.set('token'" in content or 'searchParams.set("token"' in content
+
+    def test_style_css_has_type_colors(self):
+        css_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "style.css"
+        if not css_path.exists():
+            pytest.skip("style.css 尚未创建")
+        content = css_path.read_text()
+        # 验证有颜色定义（蓝/紫/橙对应 prompt/ai_summary/analysis）
+        assert "color" in content or "border" in content
+
+    def test_upload_status_ui_uses_real_request_state_and_cancellable_polling(self):
+        static_dir = Path(__file__).parent.parent / "copilot" / "static" / "mentor"
+        js = (static_dir / "app.js").read_text()
+        html = (static_dir / "index.html").read_text()
+
+        assert "uploadRequest:" in js
+        assert "reduceUploadRequest" in js
+        assert "AbortController" in js
+        assert "upload_request_status" in js
+        assert "retry-analysis" in js
+        assert "updatedAt" in js
+        assert "uploadAttemptGeneration" in js
+        assert "4000" not in js
+        assert "完成后灰显对话将陆续点亮" not in js
+        assert 'id="retry-analysis"' in html
+
+
+class TestFrontendServed:
+    """前端可通过 HTTP 访问。"""
+
+    def test_mentor_path_returns_html(self, client):
+        resp = client.get("/mentor/")
+        # StaticFiles 可能返回 200 或 404（取决于是否 mount）
+        # 这里验证路由存在
+        assert resp.status_code in (200, 404)

@@ -1,0 +1,45 @@
+{
+  "student_id": "student-1",
+  "student_name": "学员 1",
+  "agent": {
+    "framework": "workbuddy"
+  },
+  "service": {
+    "host": "127.0.0.1",
+    "port": 8765,
+    "public_base_url": "",
+    "analysis_max_concurrency": 2
+  },
+  "auth": {
+    "mode": "local",
+    "student_token": "",
+    "student_tokens": {},
+    "mentor_token": "",
+    "token": ""
+  },
+  "llm": {
+    "provider": "deepseek",
+    "api_base": "https://api.deepseek.com/v1",
+    "model": "deepseek-chat",
+    "summary_model": "deepseek-v3-0324",
+    "api_key_env": "DEEPSEEK_API_KEY",
+    "timeout": 30,
+    "max_tokens": 600
+  },
+  "analysis": {
+    "recent_n": 16,
+    "min_interval_sec": 8,
+    "enable_llm": true,
+    "process_reminder_prompt": "如果学员出现反复试错、上下文描述不清、让 AI 直接写但自己没有验证、方向跑偏等低效模式，只在把握较高时轻提醒。提醒要少而准，不要频繁打断。"
+  },
+  "menubar": {
+    "icon_idle": "🎓",
+    "icon_active": "✨",
+    "icon_alert": "⚠️",
+    "max_menu_items": 12,
+    "notification_on_alert": true
+  },
+  "store": {
+    "db_path": "~/.workbuddy-copilot/copilot.db"
+  }
+}

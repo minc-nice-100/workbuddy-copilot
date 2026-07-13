@@ -1,0 +1,2 @@
+# Windows headless student client runtime
+-r requirements-core.txt

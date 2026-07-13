@@ -1,0 +1,159 @@
+"""导师观察台 HTTP 路由（Controller 层）。
+
+只做 HTTP 编解码 + 调用 Service 层，不直接操作 Store。
+
+  GET  /api/mentor/students                       学员列表 + 状态概览
+  GET  /api/mentor/students/{student_id}/sessions 某学员的对话列表
+  GET  /api/mentor/sessions/{session_id}/timeline 按时间排序的事件列表
+"""
+from __future__ import annotations
+
+import logging
+import re
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..app_context import get_session_service, get_store
+from ..services import SessionQueryService
+from ..store import Store
+
+router = APIRouter(prefix="/api/mentor", tags=["mentor"])
+log = logging.getLogger("copilot.mentor.routes")
+
+
+def _strip_think_blocks(text: str) -> str:
+    """Remove model reasoning blocks from reply text before showing mentors."""
+    cleaned = re.sub(r"<think\b[^>]*>.*?</think>", "", text or "", flags=re.IGNORECASE | re.DOTALL)
+    return cleaned.strip()
+
+
+def _rebuild_transcript_from_history(store: Store, session_id: str) -> dict[str, Any] | None:
+    """Rebuild readable transcript text from prompt and AI summary history."""
+    prompts = store.get_prompts_by_session(session_id)
+    summaries = store.get_ai_summaries_by_session(session_id)
+    if not prompts and not summaries:
+        return None
+
+    events: list[tuple[float, int, int, str, str, float | None]] = []
+    created_values: list[float] = []
+
+    def add_event(row: dict[str, Any], priority: int, index: int, speaker: str) -> None:
+        raw_created = row.get("created_at")
+        created = float(raw_created) if raw_created is not None else None
+        if created is not None:
+            created_values.append(created)
+        events.append((
+            created if created is not None else 0.0,
+            priority,
+            index,
+            speaker,
+            str(row.get("content") or ""),
+            created,
+        ))
+
+    for idx, prompt in enumerate(prompts):
+        add_event(prompt, 0, idx, "学员")
+    for idx, summary in enumerate(summaries):
+        add_event(summary, 1, idx, "AI")
+
+    events.sort(key=lambda event: (event[0], event[1], event[2]))
+    content = "\n".join(f"{speaker}：{text}" for _, _, _, speaker, text, _ in events)
+    return {
+        "content": content,
+        "created_at": min(created_values) if created_values else None,
+    }
+
+
+@router.get("/students")
+async def list_students(session_svc: SessionQueryService = Depends(get_session_service)):
+    """返回学员列表 + 状态概览。"""
+    students = session_svc.list_students()
+    return {"items": [s.__dict__ for s in students]}
+
+
+@router.get("/students/{student_id}/sessions")
+async def list_student_sessions(
+    student_id: str,
+    session_svc: SessionQueryService = Depends(get_session_service),
+):
+    """返回指定学员的最近活跃对话列表。"""
+    conversations = session_svc.list_sessions(student_id)
+    items = []
+    for c in conversations:
+        row = c.__dict__.copy()
+        row["session_title"] = row.pop("title", "")
+        items.append(row)
+    return {"items": items}
+
+
+@router.get("/sessions/{session_id}/timeline")
+async def get_timeline(
+    session_id: str,
+    session_svc: SessionQueryService = Depends(get_session_service),
+):
+    """返回指定会话按时间排序的事件列表（prompt|ai_summary|analysis）。"""
+    entries = session_svc.get_timeline(session_id)
+    return {"items": [e.__dict__ for e in entries]}
+
+
+@router.get("/sessions/{session_id}/transcript")
+async def get_transcript(
+    session_id: str,
+    store: Store = Depends(get_store),
+):
+    """返回指定会话的完整原文 transcript。"""
+    row = store.get_raw_transcript(session_id)
+    if not row:
+        rebuilt = _rebuild_transcript_from_history(store, session_id)
+        if not rebuilt:
+            raise HTTPException(status_code=404, detail="transcript not found")
+        log.info("raw transcript missing; rebuilt from history session_id=%s", session_id)
+        return rebuilt
+    return {
+        "content": row.get("content", ""),
+        "created_at": row.get("created_at"),
+    }
+
+
+@router.get("/prompts/{prompt_id}/reply")
+async def get_prompt_reply(
+    prompt_id: int,
+    store: Store = Depends(get_store),
+):
+    """Return the full assistant reply text for one student prompt."""
+    prompt = store.get_prompt(prompt_id)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="prompt not found")
+    reply = store.get_prompt_reply(
+        str(prompt.get("session_id") or ""),
+        int(prompt.get("seq_in_session") or 0),
+    )
+    return {"reply": _strip_think_blocks(reply)}
+
+
+@router.get("/replies/{reply_ref}/text")
+async def get_reply_text(
+    reply_ref: str,
+    store: Store = Depends(get_store),
+):
+    """Return the full assistant reply text for a prompt/message reply ref."""
+    if ":" not in reply_ref:
+        raise HTTPException(status_code=404, detail="reply not found")
+    kind, raw_id = reply_ref.split(":", 1)
+    try:
+        numeric_id = int(raw_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="reply not found") from exc
+
+    if kind == "prompt":
+        reply = store.get_prompt_reply_by_id(numeric_id)
+    elif kind == "msg":
+        reply = store.get_message_reply_by_id(numeric_id)
+    else:
+        raise HTTPException(status_code=404, detail="reply not found")
+
+    reply = _strip_think_blocks(reply)
+    if not reply:
+        raise HTTPException(status_code=404, detail="reply not found")
+    return {"reply": reply}

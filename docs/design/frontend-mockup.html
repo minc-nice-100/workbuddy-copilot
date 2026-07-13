@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>目标态交互视觉设计稿 v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;font-size:14px;color:#222;background:#f5f6f8;padding:18px}
+.wrap{max-width:1120px;margin:0 auto}
+.cap{font-size:14px;color:#111827;margin:22px 2px 10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.cap .n{background:#1f2430;color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.tag{font-size:11px;background:#fde68a;color:#92400e;border-radius:4px;padding:2px 7px;font-weight:500}
+.hint{font-size:12px;color:#6b7280;margin:2px 2px 10px}
+.app{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);background:#fff}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#1f2430;color:#fff}
+.topbar h1{font-size:16px;font-weight:600}
+.ws{font-size:12px;color:#4ade80}
+.layout{display:grid;grid-template-columns:210px 260px 1fr;gap:1px;height:600px;background:#e5e7eb}
+.panel{background:#fff;overflow-y:auto;padding:12px}
+.panel h2{font-size:12px;font-weight:600;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;color:#374151}
+.item:hover{background:#f3f4f6}.item.sel{background:#e0e7ff}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.red{background:#ef4444}.yellow{background:#f59e0b}.green{background:#22c55e}
+.nm{font-weight:500;font-size:13px}.mt{font-size:11px;color:#6b7280}
+/* ── 时间线：四类型明显区分 ── */
+.tl{display:flex;flex-direction:column;gap:12px;padding-right:4px}
+.row{display:flex;gap:10px;align-items:flex-start}
+.badge{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.b-q{background:#378ADD}.b-ai{background:#534AB7}.b-an{background:#EF9F27}.b-me{background:#DB2777}
+.card{flex:1;border-radius:10px;padding:10px 12px;border:1px solid #eef0f3}
+.card .top{font-size:11px;color:#6b7280;margin-bottom:5px;display:flex;gap:8px;align-items:center}
+.card .txt{font-size:13px;color:#1f2937;line-height:1.5;white-space:pre-wrap}
+/* 学员提问：统一蓝色气泡 */
+.c-q{background:#eff6ff;border-color:#dbeafe}
+/* AI 回复摘要：紫，带展开 */
+.c-ai{background:#f5f3ff;border-color:#e9e5ff}
+details.full{margin-top:8px;border-top:1px dashed #cbd5e1;padding-top:6px}
+details.full summary{font-size:12px;color:#534AB7;cursor:pointer;font-weight:600;list-style:none}
+details.full summary::-webkit-details-marker{display:none}
+details.full summary:before{content:"▸ ";}
+details.full[open] summary:before{content:"▾ ";}
+.log{margin-top:6px;background:#fbfaff;border:1px solid #e9e5ff;border-radius:6px;padding:8px;font-size:12px;color:#374151;max-height:150px;overflow:auto}
+.log .u{color:#1e40af;font-weight:600}.log .a{color:#5b21b6;font-weight:600}
+/* 学习诊断：洞察卡 */
+.c-an{background:#fffbeb;border-color:#fde68a}
+.und{font-size:10px;font-weight:700;border-radius:10px;padding:1px 8px;color:#fff}
+.u-stuck{background:#ef4444}.u-low{background:#f59e0b}.u-mid{background:#3b82f6}.u-high{background:#22c55e}
+.sug{margin-top:8px;background:#fff;border-left:3px solid #EF9F27;border-radius:4px;padding:6px 9px;font-size:12px;color:#78350f}
+.techtag{font-size:10px;background:#e0e7ff;color:#3730a3;border-radius:3px;padding:1px 6px}
+/* 导师提示：出站，右对齐粉 */
+.row.out{flex-direction:row-reverse}
+.c-me{background:#fdf2f8;border-color:#fbcfe8;max-width:82%}
+.pill{font-size:10px;border-radius:8px;padding:1px 7px;background:#dcfce7;color:#166534;font-weight:600}
+/* compose */
+.compose{margin-top:12px;border-top:1px solid #eee;padding-top:10px;display:flex;gap:8px}
+.compose input{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:9px 11px;font-size:13px}
+.compose button{background:#DB2777;color:#fff;border:0;border-radius:8px;padding:0 18px;font-weight:600;cursor:pointer}
+.legend{font-size:11px;color:#6b7280;margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+/* ── 学员端 ── */
+.stu{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.desk{position:relative;height:300px;background:linear-gradient(135deg,#2d3748,#1a202c);border-radius:10px;overflow:hidden;border:1px solid #e5e7eb}
+.states{display:flex;gap:26px;position:absolute;top:20px;left:24px}
+.st{text-align:center;color:#cbd5e1;font-size:11px}
+.ic{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#60a5fa,#2563eb);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 6px}
+.ic.idle{background:radial-gradient(circle at 40% 35%,#94a3b8,#475569);box-shadow:none}
+.ic.active{box-shadow:0 0 0 5px rgba(96,165,250,.28)}
+.ic.alert{box-shadow:0 0 0 5px rgba(239,68,68,.35)}
+.ic.alert:after{content:"";position:absolute;width:12px;height:12px;background:#ef4444;border-radius:50%;transform:translate(18px,-20px);border:2px solid #1a202c}
+.bubble{position:absolute;right:20px;bottom:20px;max-width:290px;background:#fff;border-radius:12px;padding:11px 13px;box-shadow:0 8px 24px rgba(0,0,0,.35);border-left:3px solid #DB2777}
+.bubble .who{font-size:11px;color:#DB2777;font-weight:700;margin-bottom:3px}
+.bubble .x{position:absolute;top:7px;right:9px;color:#9ca3af;cursor:pointer}
+.scard{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.scard h3{font-size:13px;color:#111827;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.krow{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f3f4f6}
+.krow .k{color:#6b7280}
+.guide{margin-top:10px;background:#eff6ff;border-radius:8px;padding:9px;font-size:12px;color:#1e3a5f}
+.mnote{margin-top:8px;background:#fdf2f8;border-left:3px solid #DB2777;border-radius:6px;padding:8px;font-size:12px;color:#831843}
+.sessbar{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.chip{font-size:11px;background:#f3f4f6;border-radius:12px;padding:3px 10px;color:#374151}
+.chip.on{background:#e0e7ff;color:#3730a3;font-weight:600}
+</style></head>
+<body><div class="wrap">
+
+<div class="cap"><span class="n">A</span>导师观察台（目标态·时间线重设计）<span class="tag">四类型徽章+卡片区分 · AI回复可展开 · 发消息+已送达</span></div>
+<div class="hint">痛点修复：不再只靠左侧彩条区分。每类型独立徽章+卡片样式；"AI 摘要"改名"AI 回复摘要"，可点▸展开看完整回复原文。</div>
+<div class="app">
+  <div class="topbar"><h1>导师观察台</h1><span class="ws">● 已连接</span></div>
+  <div class="layout">
+    <div class="panel"><h2>学员</h2>
+      <div class="item sel"><span class="dot green"></span><div><div class="nm">王佳梁 Michael</div><div class="mt">12 对话 · 48 分析</div></div></div>
+      <div class="item"><span class="dot red"></span><div><div class="nm">张三</div><div class="mt">5 对话 · 2 告警</div></div></div>
+      <div class="item"><span class="dot yellow"></span><div><div class="nm">李四</div><div class="mt">7 对话 · 15 分析</div></div></div>
+    </div>
+    <div class="panel"><h2>对话</h2>
+      <div class="item sel"><span class="dot yellow"></span><div><div class="nm">端口适配器重构</div><div class="mt">8 分析 · 1 告警</div></div></div>
+      <div class="item"><span class="dot green"></span><div><div class="nm">浮标跨 Space 显示</div><div class="mt">5 分析</div></div></div>
+    </div>
+    <div class="panel"><h2>时间线</h2>
+      <div class="tl">
+        <div class="row"><div class="badge b-q">问</div><div class="card c-q"><div class="top">学员提问 · 14:20</div><div class="txt">帮我把 ports.py 里的端口都删掉，会不会影响 Service 层？</div></div></div>
+        <div class="row"><div class="badge b-ai">AI</div><div class="card c-ai"><div class="top">AI 回复摘要 · 14:21</div><div class="txt">说明删除端口对注入点的影响，建议先确认没有第二实现，并跑测试验证依赖。</div>
+          <details class="full"><summary>查看完整 AI 回复</summary><div class="log"><span class="u">学员：</span>帮我把 ports.py 的端口都删掉…<br/><span class="a">AI：</span>删除前需确认三点：①这些端口有没有第二个实现（目前只有 WorkBuddy）…②Service 层是否直接依赖抽象…③建议先运行 `pytest tests/` 观察哪些用例依赖端口。逐条来看：ports.py 定义了 4 个 ABC……（完整原文来自 raw_transcripts，导师可读全部轮次）</div></details>
+        </div></div>
+        <div class="row"><div class="badge b-an">诊</div><div class="card c-an"><div class="top">学习诊断 · 14:22 <span class="und u-stuck">卡点</span> <span class="techtag">技术</span></div><div class="txt">学员卡在"删抽象的连锁影响"上，判断偏保守，未先验证依赖就想全删。</div><div class="sug">💡 建议：先跑 pytest 看端口是否有真实消费者，再决定删除范围。</div></div></div>
+        <div class="row out"><div class="badge b-me">师</div><div class="card c-me"><div class="top">导师提示 → 王佳梁 · 王老师 14:32 <span class="pill">✓ 已送达</span></div><div class="txt">别急着删，先跑一遍测试看依赖，端口只有单实现时才安全删。</div></div></div>
+      </div>
+      <div class="compose"><input placeholder="给 王佳梁 发一条提示…（不改 AI，仅提示学员）"/><button>发送</button></div>
+      <div class="legend">
+        <span><span class="sw" style="background:#378ADD"></span>学员提问</span>
+        <span><span class="sw" style="background:#534AB7"></span>AI 回复摘要（可展开原文）</span>
+        <span><span class="sw" style="background:#EF9F27"></span>学习诊断</span>
+        <span><span class="sw" style="background:#DB2777"></span>导师提示（出站）</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cap"><span class="n">B</span>学员端 · 桌面浮标（目标态·完整）<span class="tag">三态 + 点击分析卡 + 收导师提示 + 会话切换</span></div>
+<div class="hint">学员侧的 Copilot：浮标常驻桌面角，随学习状态变化；点击弹出分析卡（学员自己的引导）；收到导师提示时弹气泡+红点脉冲。仅提示，不改 AI 对话。</div>
+<div class="stu">
+  <div class="desk">
+    <div class="states">
+      <div class="st"><div class="ic idle">🎓</div>idle 安静</div>
+      <div class="st"><div class="ic active">🎓</div>active 分析中</div>
+      <div class="st"><div class="ic alert" style="position:relative">🎓</div>alert 有提示</div>
+    </div>
+    <div class="bubble"><span class="x">✕</span><div class="who">👨‍🏫 导师提示 · 王老师</div><div class="txt" style="font-size:13px">别急着删，先跑一遍测试看依赖，端口只有单实现时才安全删。</div></div>
+  </div>
+  <div class="scard">
+    <h3>学习分析卡 <span class="und u-stuck">卡点</span></h3>
+    <div class="krow"><span class="k">当前主题</span><span>端口适配器重构</span></div>
+    <div class="krow"><span class="k">理解程度</span><span>stuck（卡点）</span></div>
+    <div class="krow"><span class="k">是否技术</span><span>是</span></div>
+    <div class="guide">💡 引导：删抽象前先确认有没有第二实现，跑一遍 pytest 看真实依赖，再决定删除范围。</div>
+    <div class="mnote">👨‍🏫 导师提示：别急着删，先跑测试看依赖。</div>
+    <div class="sessbar"><span class="chip on">端口适配器重构</span><span class="chip">浮标跨Space</span><span class="chip">db调研</span></div>
+  </div>
+</div>
+
+</div></body></html>
