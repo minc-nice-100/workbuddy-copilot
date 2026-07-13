@@ -39,7 +39,7 @@ class TestFrontendStructure:
         index_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "index.html"
         if not index_path.exists():
             pytest.skip("index.html 尚未创建")
-        content = index_path.read_text()
+        content = index_path.read_text(encoding="utf-8")
         # 三栏布局标识
         assert "学员" in content or "student" in content.lower()
         assert "对话" in content or "session" in content.lower()
@@ -49,13 +49,13 @@ class TestFrontendStructure:
         js_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "app.js"
         if not js_path.exists():
             pytest.skip("app.js 尚未创建")
-        content = js_path.read_text()
+        content = js_path.read_text(encoding="utf-8")
         assert "fetch" in content or "XMLHttpRequest" in content
         assert "WebSocket" in content or "ws" in content.lower()
 
     def test_app_js_sends_mentor_token_for_public_mode(self):
         js_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "app.js"
-        content = js_path.read_text()
+        content = js_path.read_text(encoding="utf-8")
 
         assert "MENTOR_TOKEN_STORAGE_KEY" in content
         assert "authFetch" in content
@@ -68,14 +68,14 @@ class TestFrontendStructure:
         css_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "style.css"
         if not css_path.exists():
             pytest.skip("style.css 尚未创建")
-        content = css_path.read_text()
+        content = css_path.read_text(encoding="utf-8")
         # 验证有颜色定义（蓝/紫/橙对应 prompt/ai_summary/analysis）
         assert "color" in content or "border" in content
 
     def test_upload_status_ui_uses_real_request_state_and_cancellable_polling(self):
         static_dir = Path(__file__).parent.parent / "copilot" / "static" / "mentor"
-        js = (static_dir / "app.js").read_text()
-        html = (static_dir / "index.html").read_text()
+        js = (static_dir / "app.js").read_text(encoding="utf-8")
+        html = (static_dir / "index.html").read_text(encoding="utf-8")
 
         assert "uploadRequest:" in js
         assert "reduceUploadRequest" in js
