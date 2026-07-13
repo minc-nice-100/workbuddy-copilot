@@ -1,10 +1,12 @@
 """State-machine boundary for mentor-triggered transcript uploads."""
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Literal
 
-from .store import Store, UploadRetryClaimConflict
+from .store import UploadRetryClaimConflict
+from .upload_store import UploadStore
 
 log = logging.getLogger("copilot.upload_service")
 
@@ -40,7 +42,7 @@ class UploadTranscriptNotFound(LookupError):
 
 
 class UploadRequestService:
-    def __init__(self, store: Store):
+    def __init__(self, store: UploadStore):
         self.store = store
 
     def create(
@@ -71,6 +73,48 @@ class UploadRequestService:
         if row is None:
             raise UploadRequestNotFound(f"upload request not found: {request_id}")
         return row
+
+    def to_response(self, row: dict[str, Any]) -> dict[str, Any]:
+        result = None
+        result_json = row.get("result_json")
+        if result_json:
+            try:
+                result = json.loads(str(result_json))
+            except json.JSONDecodeError:
+                result = None
+        transfer_status = str(row.get("transfer_status") or {
+            "done": "stored",
+        }.get(str(row.get("status") or "pending"), row.get("status") or "pending"))
+        legacy_status = {
+            "pending": "pending",
+            "running": "running",
+            "stored": "done",
+            "failed": "failed",
+        }.get(transfer_status, str(row.get("status") or "pending"))
+        analysis_status = str(row.get("analysis_status") or "not_requested")
+        transfer_error = str(row.get("transfer_error") or "")
+        analysis_error = str(row.get("analysis_error") or "")
+        if transfer_status == "failed":
+            compatibility_error = transfer_error
+        elif analysis_status == "failed":
+            compatibility_error = analysis_error
+        else:
+            compatibility_error = str(row.get("error_message") or "")
+        return {
+            "request_id": row.get("request_id"),
+            "mentor_id": row.get("mentor_id"),
+            "student_id": row.get("student_id"),
+            "session_id": row.get("session_id") or "",
+            "status": legacy_status,
+            "created_at": row.get("created_at"),
+            "updated_at": row.get("updated_at") or row.get("created_at"),
+            "error_message": compatibility_error,
+            "result": result,
+            "transfer_status": transfer_status,
+            "analysis_status": analysis_status,
+            "transfer_error": transfer_error,
+            "analysis_error": analysis_error,
+        }
 
     def register_session(
         self,

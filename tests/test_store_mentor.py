@@ -93,7 +93,7 @@ class TestTimelineAggregation:
         store.add_analysis(report_id, "stu-1", {"topic": "test", "understanding": "medium"}, "sess-1", "标题")
         # 获取 timeline
         timeline = store.get_timeline_by_session("sess-1")
-        types = {item["type"] for item in timeline}
+        types = {item.type for item in timeline}
         assert "prompt" in types
         assert "ai_summary" in types
         assert "analysis" in types
@@ -109,20 +109,20 @@ class TestTimelineAggregation:
             "is_technical": True,
         }, "sess-1", "标题")
 
-        analysis = next(item for item in store.get_timeline_by_session("sess-1") if item["type"] == "analysis")
+        analysis = next(item for item in store.get_timeline_by_session("sess-1") if item.type == "analysis")
 
-        assert analysis["severity"] == "warn"
-        assert analysis["suggestion"] == "先打印边界变量"
-        assert analysis["is_technical"] == 1
-        assert analysis["topic"] == "函数调试"
-        assert analysis["understanding"] == "low"
+        assert analysis.severity == "warn"
+        assert analysis.suggestion == "先打印边界变量"
+        assert analysis.is_technical == 1
+        assert analysis.topic == "函数调试"
+        assert analysis.understanding == "low"
 
     def test_timeline_ordered_by_created_at(self, store):
         store.add_prompt("sess-1", 0, "stu-1", "第一")
         store.add_prompt("sess-1", 1, "stu-1", "第二")
         timeline = store.get_timeline_by_session("sess-1")
         assert len(timeline) == 2
-        assert timeline[0]["created_at"] <= timeline[1]["created_at"]
+        assert timeline[0].created_at <= timeline[1].created_at
 
     def test_timeline_empty_session(self, store):
         timeline = store.get_timeline_by_session("nonexistent")
@@ -173,16 +173,16 @@ class TestTimelineAggregation:
             )
 
         timeline = store.get_timeline_by_session("sess-bulk")
-        summaries = [item for item in timeline if item["type"] == "ai_summary"]
+        summaries = [item for item in timeline if item.type == "ai_summary"]
 
-        assert [item["content"] for item in summaries] == ["第一问 LLM 摘要", ""]
-        assert [item["prompt_id"] for item in summaries] == [None, None]
-        assert [item["reply_ref"] for item in summaries] == [
+        assert [item.content for item in summaries] == ["第一问 LLM 摘要", ""]
+        assert [item.prompt_id for item in summaries] == [None, None]
+        assert [item.reply_ref for item in summaries] == [
             f"msg:{user_rows[0]['id']}",
             f"msg:{user_rows[1]['id']}",
         ]
-        assert [item["has_full_reply"] for item in summaries] == [1, 1]
-        assert "第一问完整回复 A" not in [item["content"] for item in summaries]
+        assert [item.has_full_reply for item in summaries] == [1, 1]
+        assert "第一问完整回复 A" not in [item.content for item in summaries]
 
     def test_timeline_has_one_ai_summary_per_prompt_with_reply_flag(self, store):
         first_prompt = store.add_prompt("sess-1", 0, "stu-1", "第一问")
@@ -204,13 +204,13 @@ class TestTimelineAggregation:
         )
 
         timeline = store.get_timeline_by_session("sess-1")
-        summaries = [item for item in timeline if item["type"] == "ai_summary"]
+        summaries = [item for item in timeline if item.type == "ai_summary"]
 
-        assert [item["content"] for item in summaries] == ["第一问 LLM 摘要", "第二问 LLM 摘要"]
-        assert [item["prompt_id"] for item in summaries] == [first_prompt, second_prompt]
-        assert [item["reply_ref"] for item in summaries] == [f"prompt:{first_prompt}", f"prompt:{second_prompt}"]
-        assert [item["has_full_reply"] for item in summaries] == [1, 1]
-        assert "第一问完整回复 A" not in [item["content"] for item in summaries]
+        assert [item.content for item in summaries] == ["第一问 LLM 摘要", "第二问 LLM 摘要"]
+        assert [item.prompt_id for item in summaries] == [first_prompt, second_prompt]
+        assert [item.reply_ref for item in summaries] == [f"prompt:{first_prompt}", f"prompt:{second_prompt}"]
+        assert [item.has_full_reply for item in summaries] == [1, 1]
+        assert "第一问完整回复 A" not in [item.content for item in summaries]
 
 
 class TestBackwardCompatibility:

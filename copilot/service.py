@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import inspect
 import asyncio
-import json
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -21,7 +20,6 @@ from .app_context import (
     get_analysis_service,
     get_context,
     get_message_service,
-    get_session_service,
     get_store,
     get_upload_service,
     require_mentor_token,
@@ -32,24 +30,21 @@ from .app_context import (
 )
 from .llm import (
     answer_question as llm_answer_question,
-    coerce_analysis_outcome,
     question_fallback_answer,
 )
-from .models import AnalysisResult
 from .services import (
-    EXPLICIT_RAW_TRANSCRIPT_MARKER,
     AnalysisService,
     MessageService,
-    SessionQueryService,
 )
 from .store import Store
+from .upload_analysis import UploadAnalysisService
 from .upload_service import (
     InvalidStateTransition,
     UploadRequestNotFound,
     UploadRequestService,
     UploadTranscriptNotFound,
 )
-from .transcript import Message, TranscriptSnapshot, parse_text, parse_turns
+from .transcript import parse_text, parse_turns
 
 logging.basicConfig(
     level=logging.INFO,
@@ -198,389 +193,19 @@ async def _handle_stop_background(
         log.exception("background Stop analysis failed report_id=%s: %s", report_id, exc)
 
 
-def _filtered_content_to_raw(filtered_content: Any) -> str:
-    """Normalize already-filtered uploaded message content into JSONL text."""
-    if filtered_content is None:
-        return ""
-    if isinstance(filtered_content, str):
-        return filtered_content
-    if isinstance(filtered_content, (bytes, bytearray)):
-        return bytes(filtered_content).decode("utf-8", errors="replace")
-    if isinstance(filtered_content, dict):
-        for key in ("messages", "items", "lines"):
-            value = filtered_content.get(key)
-            if isinstance(value, list):
-                return _filtered_content_to_raw(value)
-        return json.dumps(filtered_content, ensure_ascii=False)
-    if isinstance(filtered_content, list):
-        lines: list[str] = []
-        for item in filtered_content:
-            if isinstance(item, (dict, list)):
-                lines.append(json.dumps(item, ensure_ascii=False))
-            else:
-                lines.append(str(item))
-        return "\n".join(lines)
-    return str(filtered_content)
-
-
-def _bulk_upload_llm_enabled(config: dict[str, Any]) -> bool:
-    analysis_cfg = config.get("analysis", {}) or {}
-    if not analysis_cfg.get("enable_llm", True):
-        return False
-    llm_cfg = config.get("llm", {}) or {}
-    if not llm_cfg.get("enable_llm", True):
-        return False
-    return bool(
-        llm_cfg.get("api_key")
-        and llm_cfg.get("model")
-        and llm_cfg.get("api_base")
-    )
-
-
-def _upload_request_to_response(row: dict[str, Any]) -> dict[str, Any]:
-    result = None
-    result_json = row.get("result_json")
-    if result_json:
-        try:
-            result = json.loads(str(result_json))
-        except json.JSONDecodeError:
-            result = None
-    transfer_status = str(row.get("transfer_status") or {
-        "done": "stored",
-    }.get(str(row.get("status") or "pending"), row.get("status") or "pending"))
-    legacy_status = {
-        "pending": "pending",
-        "running": "running",
-        "stored": "done",
-        "failed": "failed",
-    }.get(transfer_status, str(row.get("status") or "pending"))
-    analysis_status = str(row.get("analysis_status") or "not_requested")
-    transfer_error = str(row.get("transfer_error") or "")
-    analysis_error = str(row.get("analysis_error") or "")
-    if transfer_status == "failed":
-        compatibility_error = transfer_error
-    elif analysis_status == "failed":
-        compatibility_error = analysis_error
-    else:
-        compatibility_error = str(row.get("error_message") or "")
-    return {
-        "request_id": row.get("request_id"),
-        "mentor_id": row.get("mentor_id"),
-        "student_id": row.get("student_id"),
-        "session_id": row.get("session_id") or "",
-        "status": legacy_status,
-        "created_at": row.get("created_at"),
-        "updated_at": row.get("updated_at") or row.get("created_at"),
-        "error_message": compatibility_error,
-        "result": result,
-        "transfer_status": transfer_status,
-        "analysis_status": analysis_status,
-        "transfer_error": transfer_error,
-        "analysis_error": analysis_error,
-    }
-
-
-def _snapshot_from_turns(turns: list[dict[str, Any]]) -> TranscriptSnapshot:
-    snap = TranscriptSnapshot()
-    for turn in turns:
-        role = str(turn.get("role") or "")
-        text = str(turn.get("text") or "")
-        if role not in {"user", "assistant"} or not text:
-            continue
-        snap.messages.append(
-            Message(role=role, text=text, timestamp=turn.get("ts"))
-        )
-    return snap
-
-
-def _latest_user_prompt(turns: list[dict[str, Any]]) -> str:
-    for turn in reversed(turns):
-        if turn.get("role") == "user" and turn.get("text"):
-            return str(turn["text"])
-    return ""
-
-
-async def _analyze_uploaded_session_background(
-    context: AppContext,
-    student_id: str,
-    session_id: str,
-    turns: list[dict[str, Any]],
-    sha: str,
-    request_id: str | None = None,
-) -> tuple[bool, str]:
-    """Run bounded LLM analysis for an uploaded historical session."""
-    try:
-        if request_id:
-            await _mark_upload_child_and_publish(
-                context, request_id, student_id, session_id, "running", sha=sha
-            )
-        context.store.set_raw_transcript_analysis_status(
-            session_id,
-            student_id,
-            status="running",
-            content_sha256=sha,
-        )
-        snap = _snapshot_from_turns(turns)
-        latest_prompt = _latest_user_prompt(turns)
-        llm_config = (
-            context.analysis_svc._config_with_prompt_overrides()
-            if hasattr(context.analysis_svc, "_config_with_prompt_overrides")
-            else context.config
-        )
-        async with context.analysis_svc.analysis_semaphore:
-            raw_outcome = await context.analysis_svc.llm(
-                llm_config,
-                snap,
-                "Stop",
-                latest_prompt,
-            )
-        outcome = coerce_analysis_outcome(raw_outcome)
-        if not outcome.ok:
-            raise RuntimeError(outcome.error or "LLM provider analysis failed")
-        result = AnalysisResult.from_dict(outcome.value)
-        session_title = context.store.get_session_title(session_id)
-        report_id = context.store.commit_bulk_analysis_if_current(
-            student_id=student_id,
-            session_id=session_id,
-            content_sha256=sha,
-            result=result.to_dict(),
-            session_title=session_title,
-            msg_count=len(snap.messages),
-        )
-        if report_id is None:
-            log.info(
-                "bulk analysis discarded stale_sha student=%s session=%s sha=%s",
-                student_id,
-                session_id[:8],
-                sha[:12],
-            )
-            if request_id:
-                await _mark_upload_child_and_publish(
-                    context, request_id, student_id, session_id, "failed",
-                    error="analysis stale transcript", sha=sha,
-                )
-            return False, "analysis stale transcript"
-        await context.bus.publish({
-            "type": "analysis",
-            "student_id": student_id,
-            "session_id": session_id,
-            "session_title": session_title,
-            "report_id": report_id,
-            "event": "BulkUpload",
-            "prompt": latest_prompt[:120],
-            "result": result.to_dict(),
-            "timestamp": time.time(),
-        })
-        log.info(
-            "bulk upload analysis complete student=%s session=%s report_id=%s",
-            student_id,
-            session_id[:8],
-            report_id,
-        )
-        if request_id:
-            await _mark_upload_child_and_publish(
-                context, request_id, student_id, session_id, "done", sha=sha
-            )
-        return True, ""
-    except Exception as exc:
-        error_code = _stable_background_analysis_error(exc)
-        context.store.set_raw_transcript_analysis_status(
-            session_id,
-            student_id,
-            status="failed",
-            error_message=error_code,
-            content_sha256=sha,
-        )
-        log.error(
-            "bulk upload analysis failed student=%s session=%s error=%s type=%s",
-            student_id,
-            session_id[:8],
-            error_code,
-            type(exc).__name__,
-        )
-        if request_id:
-            await _mark_upload_child_and_publish(
-                context, request_id, student_id, session_id, "failed",
-                error=error_code, sha=sha,
-            )
-        return False, error_code
-
-
-def _stable_background_analysis_error(exc: Exception) -> str:
-    """Return a bounded error code without provider response or exception details."""
-    message = str(exc)
-    if message.startswith("LLM provider HTTP "):
-        return " ".join(message.split()[:4])[:80]
-    if message.startswith("LLM provider "):
-        return " ".join(message.split()[:3])[:80]
-    if message.startswith("LLM response JSON invalid"):
-        return "LLM response JSON invalid"
-    return f"analysis {type(exc).__name__}"
-
-
-async def _publish_upload_request_status(
-    context: AppContext,
-    row: dict[str, Any],
-) -> None:
-    """Publish a persisted request snapshot to mentor sockets only."""
-    snapshot = _upload_request_to_response(row)
-    snapshot["result"] = _sanitize_upload_event_result(snapshot.get("result"))
-    await context.bus.publish({
-        "type": "upload_request_status",
-        **snapshot,
-        "timestamp": time.time(),
-    })
-
-
-async def _publish_upload_parent_rows(
-    context: AppContext,
-    rows: list[dict[str, Any]],
-) -> None:
-    for row in rows:
-        await _publish_upload_request_status(context, row)
-
-
-async def _mark_upload_child_and_publish(
-    context: AppContext,
-    request_id: str,
-    student_id: str,
-    session_id: str,
-    status: str,
-    *,
-    error: str = "",
-    sha: str | None = None,
-) -> None:
-    _child, rows = context.upload_svc.mark_session_analysis(
-        request_id,
-        student_id,
-        session_id,
-        status,
-        error=error,
-        sha=sha,
-    )
-    await _publish_upload_parent_rows(context, rows)
-
-
-def _sanitize_upload_event_result(value: Any) -> Any:
-    """Return only bounded aggregate counters from a client-controlled result."""
-    if not isinstance(value, dict):
-        return None
-    sanitized: dict[str, int] = {}
-    for key in ("total", "synced", "skipped", "failed"):
-        item = value.get(key)
-        if isinstance(item, int) and not isinstance(item, bool) and 0 <= item <= 1_000_000:
-            sanitized[key] = item
-    return sanitized
-
-
-async def _retry_upload_request_analysis_background(
-    context: AppContext,
-    request_id: str,
-    student_id: str,
-    session_id: str,
-    raw: str,
-    sha: str,
-) -> None:
-    """Analyze the already-persisted raw transcript and mirror request status."""
-    try:
-        children = context.store.list_upload_request_sessions(request_id)
-        has_child = any(child.get("session_id") == session_id for child in children)
-        if has_child:
-            await _mark_upload_child_and_publish(
-                context, request_id, student_id, session_id, "running", sha=sha
-            )
-        else:
-            running = context.upload_svc.mark_analysis(
-                request_id, student_id, "running", error=""
-            )
-            await _publish_upload_request_status(context, running)
-        turns = parse_turns(parse_text(raw).messages)
-        ok, error = await _analyze_uploaded_session_background(
-            context,
-            student_id,
-            session_id,
-            turns,
-            sha,
-        )
-        if has_child:
-            await _mark_upload_child_and_publish(
-                context,
-                request_id,
-                student_id,
-                session_id,
-                "done" if ok else "failed",
-                error="" if ok else error,
-                sha=sha,
-            )
-        elif ok:
-            final = context.upload_svc.mark_analysis(
-                request_id, student_id, "done", error=""
-            )
-        else:
-            final = context.upload_svc.mark_analysis(
-                request_id, student_id, "failed", error=error
-            )
-        if not has_child:
-            await _publish_upload_request_status(context, final)
-    except (InvalidStateTransition, UploadRequestNotFound) as exc:
-        log.warning(
-            "upload request retry state changed request_id=%s error=%s",
-            request_id,
-            exc,
-        )
-
-
-async def _recover_pending_reports(ctx: AppContext) -> None:
-    pending_reports = ctx.store.list_pending_reports()
-    if not pending_reports:
-        return
-
-    stop_reports = [row for row in pending_reports if row.get("event") == "Stop"]
-    log.warning(
-        "recovering %d pending Stop reports from previous process",
-        len(stop_reports),
-    )
-    for row in stop_reports:
-        report_id = int(row["id"])
-        student_id = str(row.get("student_id") or "")
-        session_id = str(row.get("session_id") or "")
-        if ctx.store.analysis_exists_for_report(report_id):
-            log.warning(
-                "pending Stop report_id=%s already has analysis; clearing pending flag",
-                report_id,
-            )
-            ctx.store.set_analysis_pending(report_id, False)
-            continue
-
-        transcript_content = ""
-        if (
-            session_id
-            and row.get("transcript_path") == EXPLICIT_RAW_TRANSCRIPT_MARKER
-        ):
-            raw = ctx.store.get_raw_transcript_for_report(session_id, row.get("created_at"))
-            transcript_content = (raw or {}).get("content") or ""
-        log.info(
-            "requeue pending Stop report_id=%s student=%s session=%s transcript_bytes=%d",
-            report_id,
-            student_id,
-            (session_id or "?")[:8],
-            len(transcript_content.encode("utf-8")),
-        )
-        await _handle_stop_background(
-            ctx.analysis_svc,
-            student_id,
-            session_id,
-            str(row.get("prompt") or ""),
-            transcript_content,
-            report_id,
-        )
-
-
 def create_app(context: AppContext | None = None) -> FastAPI:
     ctx = context or build_context()
-    startup_upload_svc = ctx.upload_svc or UploadRequestService(ctx.store)
+    startup_upload_svc = ctx.upload_svc or UploadRequestService(ctx.store.uploads)
     if ctx.upload_svc is None:
         ctx.upload_svc = startup_upload_svc
+    if ctx.upload_analysis_svc is None:
+        ctx.upload_analysis_svc = UploadAnalysisService(
+            store=ctx.store,
+            analysis_svc=ctx.analysis_svc,
+            upload_svc=ctx.upload_svc,
+            bus=ctx.bus,
+            config=ctx.config,
+        )
     validate_auth_config(ctx.config)
 
     @asynccontextmanager
@@ -594,7 +219,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
                     "recovered %d interrupted upload analyses",
                     len(recovered_uploads),
                 )
-            await _recover_pending_reports(ctx)
+            await ctx.upload_analysis_svc.recover_pending()
             yield
         finally:
             release_worker_lock(ctx)
@@ -728,7 +353,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="sha is required")
 
         request_id = (data.request_id or "").strip() or None
-        analysis_scheduled = _bulk_upload_llm_enabled(context.config)
+        analysis_scheduled = UploadAnalysisService._bulk_upload_llm_enabled(context.config)
 
         known = store.get_known_session_shas(student_id)
         known_entry = known.get(session_id) or {}
@@ -753,7 +378,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
                 raise HTTPException(status_code=404, detail="upload request not found") from exc
             except InvalidStateTransition as exc:
                 raise HTTPException(status_code=409, detail=str(exc)) from exc
-            await _publish_upload_parent_rows(context, parent_rows)
+            await context.upload_analysis_svc._publish_upload_parent_rows(parent_rows)
         if known_entry.get("sha") == sha:
             retry_analysis = (
                 bool(raw_row)
@@ -771,8 +396,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
                     content_sha256=sha,
                 )
                 background_tasks.add_task(
-                    _analyze_uploaded_session_background,
-                    context,
+                    context.upload_analysis_svc.analyze_session,
                     student_id,
                     session_id,
                     turns,
@@ -810,7 +434,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
                 "retry_analysis": False,
             }
 
-        raw = _filtered_content_to_raw(data.filtered_content)
+        raw = UploadAnalysisService._filtered_content_to_raw(data.filtered_content)
         snap = parse_text(raw)
         turns = parse_turns(snap.messages)
         try:
@@ -832,8 +456,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
         )
         if analysis_scheduled:
             background_tasks.add_task(
-                _analyze_uploaded_session_background,
-                context,
+                context.upload_analysis_svc.analyze_session,
                 student_id,
                 session_id,
                 turns,
@@ -922,7 +545,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
             row = upload_svc.get(request_id)
         except UploadRequestNotFound as exc:
             raise HTTPException(status_code=404, detail="upload request not found") from exc
-        return _upload_request_to_response(row)
+        return upload_svc.to_response(row)
 
     @app.post(
         "/api/mentor/upload-requests/{request_id}/retry-analysis",
@@ -944,13 +567,12 @@ def create_app(context: AppContext | None = None) -> FastAPI:
         except InvalidStateTransition as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-        response = _upload_request_to_response(pending)
-        await _publish_upload_request_status(context, pending)
+        response = upload_svc.to_response(pending)
+        await context.upload_analysis_svc._publish_upload_request_status(pending)
         for item in work_items:
             raw_row = item["raw"]
             background_tasks.add_task(
-                _retry_upload_request_analysis_background,
-                context,
+                context.upload_analysis_svc.retry_request,
                 request_id,
                 str(pending.get("student_id") or ""),
                 str(item.get("session_id") or ""),
@@ -968,7 +590,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
     ):
         status_value = None if status == "all" else status
         return {"items": [
-            _upload_request_to_response(row)
+            upload_svc.to_response(row)
             for row in upload_svc.list(student_id=student_id, status=status_value)
         ]}
 
@@ -993,11 +615,11 @@ def create_app(context: AppContext | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="upload request not found")
         except InvalidStateTransition as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
-        await _publish_upload_request_status(context, row)
+        await context.upload_analysis_svc._publish_upload_request_status(row)
         parent_rows = upload_svc.refresh_parent_analysis(request_id, data.student_id)
-        await _publish_upload_parent_rows(context, parent_rows)
+        await context.upload_analysis_svc._publish_upload_parent_rows(parent_rows)
         latest = parent_rows[-1] if parent_rows else row
-        return _upload_request_to_response(latest)
+        return upload_svc.to_response(latest)
 
     @app.get("/sessions")
     async def list_sessions(
@@ -1005,10 +627,10 @@ def create_app(context: AppContext | None = None) -> FastAPI:
         limit: int = 10,
         _: None = Depends(require_student_token),
         context: AppContext = Depends(get_context),
-        session_svc: SessionQueryService = Depends(get_session_service),
+        store: Store = Depends(get_store),
     ):
         sid = student_id or context.config.get("student_id", "student-1")
-        conversations = session_svc.list_sessions(sid, limit=limit)
+        conversations = store.get_sessions_by_student(sid, limit=limit)
         return {"items": [c.__dict__ for c in conversations]}
 
     @app.get("/current_session")
@@ -1017,13 +639,13 @@ def create_app(context: AppContext | None = None) -> FastAPI:
         student_id: str | None = None,
         _: None = Depends(require_student_token),
         context: AppContext = Depends(get_context),
-        session_svc: SessionQueryService = Depends(get_session_service),
+        store: Store = Depends(get_store),
     ):
         sid = student_id or context.config.get("student_id", "student-1")
-        active = session_svc.get_active_session(work_dir, student_id=sid)
+        active = store.get_active_session_from_table(work_dir, student_id=sid)
         if not active:
             return {"session_id": None, "items": []}
-        all_sessions = session_svc.list_all_sessions_with_title(work_dir, student_id=sid, limit=8)
+        all_sessions = store.list_sessions_from_table(work_dir, student_id=sid, limit=8)
         items = [{
             "session_id": s["session_id"],
             "work_dir": s["work_dir"],

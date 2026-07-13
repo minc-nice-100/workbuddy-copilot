@@ -402,14 +402,14 @@ def test_get_sessions_by_student_from_table_reads_sessions_table(store):
 
     rows = store.get_sessions_by_student_from_table("stu-sessions", limit=10)
 
-    assert [row["session_id"] for row in rows] == ["sess-new", "sess-old"]
-    assert rows[0]["session_title"] == "新会话"
-    assert rows[0]["last_ts"] == 40.0
-    assert rows[0]["analysis_count"] == 1
-    assert rows[0]["alert_count"] == 1
-    assert rows[0]["last_severity"] == "warn"
-    assert rows[0]["last_topic"] == "最新主题"
-    assert rows[0]["last_diagnosis"] == "最新诊断"
+    assert [row.session_id for row in rows] == ["sess-new", "sess-old"]
+    assert rows[0].title == "新会话"
+    assert rows[0].last_activity_at == 40.0
+    assert rows[0].analysis_count == 1
+    assert rows[0].alert_count == 1
+    assert rows[0].last_severity == "warn"
+    assert rows[0].last_topic == "最新主题"
+    assert rows[0].last_diagnosis == "最新诊断"
 
 
 def test_upsert_session_existing_row_only_updates_title_and_activity(store):

@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from copilot.app_context import get_message_service, get_session_service, get_store
+from copilot.app_context import get_message_service, get_store
 from copilot.service import app
 from copilot.models import Student, Conversation, TimelineEntry
 
@@ -18,14 +18,14 @@ class TestMentorStudents:
     """GET /api/mentor/students。"""
 
     def test_returns_student_list_with_display_name(self, client):
-        class FakeSessionService:
-            def list_students(self):
+        class FakeStore:
+            def students_overview(self):
                 return [
                     Student(student_id="stu-1", display_name="王同学",
                             session_count=2, analysis_count=5, last_topic="Python"),
                 ]
 
-        app.dependency_overrides[get_session_service] = lambda: FakeSessionService()
+        app.dependency_overrides[get_store] = lambda: FakeStore()
         try:
             resp = client.get("/api/mentor/students")
             assert resp.status_code == 200
@@ -38,12 +38,12 @@ class TestMentorStudents:
             app.dependency_overrides.clear()
 
     def test_requires_token_when_configured(self, client, monkeypatch):
-        class FakeSessionService:
-            def list_students(self):
+        class FakeStore:
+            def students_overview(self):
                 return []
 
         monkeypatch.setenv("COPILOT_TOKEN", "secret")
-        app.dependency_overrides[get_session_service] = lambda: FakeSessionService()
+        app.dependency_overrides[get_store] = lambda: FakeStore()
         try:
             denied = client.get("/api/mentor/students")
             allowed = client.get(
@@ -60,14 +60,14 @@ class TestMentorStudentSessions:
     """GET /api/mentor/students/{id}/sessions。"""
 
     def test_returns_sessions_for_student(self, client):
-        class FakeSessionService:
-            def list_sessions(self, student_id):
+        class FakeStore:
+            def get_sessions_by_student(self, student_id):
                 assert student_id == "stu-1"
                 return [
                     Conversation(session_id="s1", title="Python学习", analysis_count=3),
                 ]
 
-        app.dependency_overrides[get_session_service] = lambda: FakeSessionService()
+        app.dependency_overrides[get_store] = lambda: FakeStore()
         try:
             resp = client.get("/api/mentor/students/stu-1/sessions")
             assert resp.status_code == 200
@@ -85,8 +85,8 @@ class TestMentorTimeline:
     """GET /api/mentor/sessions/{id}/timeline。"""
 
     def test_returns_timeline(self, client):
-        class FakeSessionService:
-            def get_timeline(self, session_id):
+        class FakeStore:
+            def get_timeline_by_session(self, session_id):
                 assert session_id == "sess-1"
                 return [
                     TimelineEntry(type="prompt", content="q1", created_at=1.0),
@@ -99,7 +99,7 @@ class TestMentorTimeline:
                     ),
                 ]
 
-        app.dependency_overrides[get_session_service] = lambda: FakeSessionService()
+        app.dependency_overrides[get_store] = lambda: FakeStore()
         try:
             resp = client.get("/api/mentor/sessions/sess-1/timeline")
             assert resp.status_code == 200
@@ -112,11 +112,11 @@ class TestMentorTimeline:
             app.dependency_overrides.clear()
 
     def test_empty_session_timeline(self, client):
-        class FakeSessionService:
-            def get_timeline(self, session_id):
+        class FakeStore:
+            def get_timeline_by_session(self, session_id):
                 return []
 
-        app.dependency_overrides[get_session_service] = lambda: FakeSessionService()
+        app.dependency_overrides[get_store] = lambda: FakeStore()
         try:
             resp = client.get("/api/mentor/sessions/nonexistent/timeline")
             assert resp.status_code == 200

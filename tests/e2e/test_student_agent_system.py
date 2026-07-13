@@ -28,7 +28,7 @@ from copilot.app_context import AppContext
 from copilot.connections import WSRegistry
 from copilot.eventbus import EventBus
 from copilot.service import create_app
-from copilot.services import AnalysisService, MessageService, SessionQueryService
+from copilot.services import AnalysisService, MessageService
 from copilot.store import Store
 from copilot.student_core.agent import StudentAgent
 from copilot.student_core.coordinator import StudentCoordinator
@@ -236,12 +236,14 @@ class StudentAgentSystem:
         context = AppContext(
             config=config,
             store=self.store,
+            session_store=self.store.sessions,
+            message_store=self.store.messages,
+            upload_store=self.store.uploads,
             analysis_svc=AnalysisService(self.store, _deterministic_llm, config, bus),
-            session_svc=SessionQueryService(self.store, config),
             message_svc=MessageService(self.store, bus),
             bus=bus,
             ws_registry=registry,
-            upload_svc=UploadRequestService(self.store),
+            upload_svc=UploadRequestService(self.store.uploads),
         )
         return create_app(context)
 

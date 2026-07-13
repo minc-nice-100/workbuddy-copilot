@@ -11,7 +11,7 @@ from copilot.app_context import AppContext
 from copilot.connections import WSRegistry
 from copilot.eventbus import EventBus
 from copilot.service import create_app
-from copilot.services import AnalysisService, MessageService, SessionQueryService
+from copilot.services import AnalysisService, MessageService
 from copilot.store import Store
 from copilot.upload_service import UploadRequestService
 from copilot.upload_service import InvalidStateTransition
@@ -58,12 +58,14 @@ def _build_app(tmp_path, *, llm=_fake_llm, enable_llm=False):
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=AnalysisService(store, llm, config, bus),
-        session_svc=SessionQueryService(store, config),
         message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
-        upload_svc=UploadRequestService(store),
+        upload_svc=UploadRequestService(store.uploads),
     )
     return create_app(context), store
 
@@ -247,6 +249,9 @@ def test_controller_routes_status_changes_through_injected_upload_service(tmp_pa
         def refresh_parent_analysis(self, *args, **kwargs):
             return real_service.refresh_parent_analysis(*args, **kwargs)
 
+        def to_response(self, *args, **kwargs):
+            return real_service.to_response(*args, **kwargs)
+
     app.state.context.upload_svc = RecordingService()
 
     with TestClient(app) as client:
@@ -293,6 +298,9 @@ def test_list_controller_reads_through_injected_upload_service(tmp_path, monkeyp
             calls.append((student_id, status))
             return [row]
 
+        def to_response(self, row):
+            return row
+
     app.state.context.upload_svc = ReadService()
     monkeypatch.setattr(
         store,
@@ -326,6 +334,9 @@ def test_update_controller_uses_row_returned_by_upload_service(tmp_path, monkeyp
 
         def refresh_parent_analysis(self, *args, **kwargs):
             return []
+
+        def to_response(self, row):
+            return row
 
     app.state.context.upload_svc = WriteService()
     monkeypatch.setattr(
@@ -827,8 +838,8 @@ def test_concurrent_retry_claim_allows_exactly_one_store_winner(tmp_path):
     service.refresh_parent_analysis(request_id, "student-a")
 
     services = [
-        UploadRequestService(Store(tmp_path / "copilot.db")),
-        UploadRequestService(Store(tmp_path / "copilot.db")),
+        UploadRequestService(Store(tmp_path / "copilot.db").uploads),
+        UploadRequestService(Store(tmp_path / "copilot.db").uploads),
     ]
     start = threading.Barrier(2)
 

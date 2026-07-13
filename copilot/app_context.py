@@ -7,16 +7,21 @@ module globals.
 """
 from __future__ import annotations
 
-import fcntl
 import hmac
 import logging
 import multiprocessing
 import os
+import platform
 import signal
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Sequence
+
+if platform.system() != "Windows":
+    import fcntl
+else:
+    fcntl = None  # type: ignore[assignment]
 
 from fastapi import Header, HTTPException, Request, status
 
@@ -24,8 +29,12 @@ from .config import load_config
 from .connections import WSRegistry
 from .eventbus import EventBus
 from .llm import analyze as llm_analyze
-from .services import AnalysisService, MessageService, SessionQueryService
+from .services import AnalysisService, MessageService
 from .store import Store
+from .session_store import SessionStore
+from .message_store import MessageStore
+from .upload_store import UploadStore
+from .upload_analysis import UploadAnalysisService
 from .upload_service import UploadRequestService
 
 log = logging.getLogger("copilot.app_context")
@@ -107,12 +116,15 @@ def _terminate_uvicorn_multiprocess_supervisor() -> None:
 class AppContext:
     config: dict[str, Any]
     store: Store
+    session_store: SessionStore
+    message_store: MessageStore
+    upload_store: UploadStore
     analysis_svc: AnalysisService
-    session_svc: SessionQueryService
     message_svc: MessageService
     bus: EventBus
     ws_registry: WSRegistry
     upload_svc: UploadRequestService | None = None
+    upload_analysis_svc: UploadAnalysisService | None = None
     worker_lock_file: Any | None = None
 
 
@@ -126,23 +138,32 @@ def build_context(config_path: str | os.PathLike[str] | None = None) -> AppConte
     ws_registry = WSRegistry()
     event_bus.subscribe(ws_registry.handle_event)
     analysis_svc = AnalysisService(
-        copilot_repo=store,
+        copilot_repo=store.sessions,
         llm_analyzer=llm_analyze,
         config=config,
         event_bus=event_bus,
     )
-    session_svc = SessionQueryService(copilot_repo=store, config=config)
-    message_svc = MessageService(copilot_repo=store, event_bus=event_bus)
-    upload_svc = UploadRequestService(store)
+    message_svc = MessageService(copilot_repo=store.messages, event_bus=event_bus, session_store=store.sessions)
+    upload_svc = UploadRequestService(store.uploads)
+    upload_analysis_svc = UploadAnalysisService(
+        store=store,
+        analysis_svc=analysis_svc,
+        upload_svc=upload_svc,
+        bus=event_bus,
+        config=config,
+    )
     return AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=analysis_svc,
-        session_svc=session_svc,
         message_svc=message_svc,
         bus=event_bus,
         ws_registry=ws_registry,
         upload_svc=upload_svc,
+        upload_analysis_svc=upload_analysis_svc,
     )
 
 
@@ -161,8 +182,12 @@ def acquire_worker_lock(context: AppContext) -> None:
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     lock_file = lock_path.open("a+", encoding="utf-8")
     try:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError as exc:
+        if fcntl is not None:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            import msvcrt
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)  # type: ignore[attr-defined]
+    except (BlockingIOError, OSError) as exc:
         lock_file.close()
         _terminate_uvicorn_multiprocess_supervisor()
         raise RuntimeError(
@@ -178,7 +203,11 @@ def release_worker_lock(context: AppContext) -> None:
     if lock_file is None:
         return
     try:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        if fcntl is not None:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        else:
+            import msvcrt
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
     finally:
         lock_file.close()
         context.worker_lock_file = None
@@ -193,12 +222,20 @@ def get_store(request: Request) -> Store:
     return get_context(request).store
 
 
+def get_session_store(request: Request) -> SessionStore:
+    return get_context(request).session_store
+
+
+def get_message_store(request: Request) -> MessageStore:
+    return get_context(request).message_store
+
+
+def get_upload_store(request: Request) -> UploadStore:
+    return get_context(request).upload_store
+
+
 def get_analysis_service(request: Request) -> AnalysisService:
     return get_context(request).analysis_svc
-
-
-def get_session_service(request: Request) -> SessionQueryService:
-    return get_context(request).session_svc
 
 
 def get_message_service(request: Request) -> MessageService:
@@ -208,8 +245,12 @@ def get_message_service(request: Request) -> MessageService:
 def get_upload_service(request: Request) -> UploadRequestService:
     context = get_context(request)
     if context.upload_svc is None:
-        context.upload_svc = UploadRequestService(context.store)
+        context.upload_svc = UploadRequestService(context.upload_store)
     return context.upload_svc
+
+
+def get_upload_analysis_service(request: Request) -> UploadAnalysisService:
+    return get_context(request).upload_analysis_svc
 
 
 def _legacy_token(config: dict[str, Any]) -> str:

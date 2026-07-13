@@ -40,7 +40,7 @@ def test_build_context_constructs_dependencies(tmp_path, monkeypatch):
     assert context.config["student_id"] == "student-test"
     assert context.store is not None
     assert context.analysis_svc is not None
-    assert context.session_svc is not None
+    assert context.message_svc is not None
     assert context.bus is not None
     assert context.ws_registry is not None
 

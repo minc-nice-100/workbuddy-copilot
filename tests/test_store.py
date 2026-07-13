@@ -8,7 +8,6 @@ import sqlite3
 import time
 import pytest
 
-from copilot.services import SessionQueryService
 from copilot.store import Store
 
 
@@ -341,17 +340,14 @@ class TestStore:
 
         row = store.students_overview()[0]
 
-        assert row["last_severity"] == "error"
-        assert row["last_topic"] == "a-new-info-topic"
-        assert row["last_diagnosis"] == "a-new-info-diagnosis"
+        assert row.last_severity == "error"
+        assert row.last_topic == "a-new-info-topic"
+        assert row.last_diagnosis == "a-new-info-diagnosis"
 
     def test_list_students_includes_students_without_analysis(self, store):
         store.upsert_student("bob", "Bob")
 
-        students = SessionQueryService(store, {
-            "student_id": "host",
-            "student_name": "Host",
-        }).list_students()
+        students = store.students_overview()
 
         assert [student.student_id for student in students] == ["bob"]
         assert students[0].analysis_count == 0
@@ -369,10 +365,7 @@ class TestStore:
             "understanding": "high",
         })
 
-        students = SessionQueryService(store, {
-            "student_id": "host",
-            "student_name": "Host",
-        }).list_students()
+        students = store.students_overview()
 
         assert len(students) == 1
         assert students[0].student_id == "stu-x"
@@ -388,7 +381,7 @@ class TestStore:
             "is_technical": True,
         })
 
-        entries = SessionQueryService(store, {}).get_timeline("sess-topic")
+        entries = store.get_timeline_by_session("sess-topic")
         analysis = [entry for entry in entries if entry.type == "analysis"][0]
 
         assert analysis.topic == "loop debugging"
@@ -454,10 +447,10 @@ class TestStore:
 
         row = store.get_sessions_by_student("alice")[0]
 
-        assert row["last_severity"] == "error"
-        assert row["last_topic"] == "a-new-info-topic"
-        assert row["last_diagnosis"] == "a-new-info-diagnosis"
-        assert row["session_title"] == "会话标题"
+        assert row.last_severity == "error"
+        assert row.last_topic == "a-new-info-topic"
+        assert row.last_diagnosis == "a-new-info-diagnosis"
+        assert row.title == "会话标题"
 
     def test_get_sessions_by_student_is_scoped_to_student(self, store):
         store.upsert_student("alice", "Alice")
@@ -467,7 +460,7 @@ class TestStore:
 
         rows = store.get_sessions_by_student("alice")
 
-        assert [row["session_id"] for row in rows] == ["sess-a"]
+        assert [row.session_id for row in rows] == ["sess-a"]
 
     def test_get_sessions_by_student_returns_message_count_without_analysis_inflation(self, store):
         store.upsert_student("alice", "Alice")
@@ -501,12 +494,12 @@ class TestStore:
                 "diagnosis": "ok",
             })
 
-        by_id = {row["session_id"]: row for row in store.get_sessions_by_student("alice")}
+        by_id = {row.session_id: row for row in store.get_sessions_by_student("alice")}
 
-        assert by_id["sess-content"]["message_count"] == 2
-        assert by_id["sess-content"]["analysis_count"] == 0
-        assert by_id["sess-both"]["message_count"] == 2
-        assert by_id["sess-both"]["analysis_count"] == 2
+        assert by_id["sess-content"].message_count == 2
+        assert by_id["sess-content"].analysis_count == 0
+        assert by_id["sess-both"].message_count == 2
+        assert by_id["sess-both"].analysis_count == 2
 
     def test_foreign_keys_are_enforced_for_each_connection(self, store):
         with pytest.raises(sqlite3.IntegrityError):
@@ -567,7 +560,7 @@ class TestStore:
             )
 
         timeline = store.get_timeline_by_session("sess-collision")
-        assert [row["content"] for row in timeline] == ["Alice 原文"]
+        assert [row.content for row in timeline] == ["Alice 原文"]
         assert store.get_known_session_shas("alice") == {
             "sess-collision": {"sha": "sha-alice", "analysis_status": ""},
         }
@@ -608,16 +601,16 @@ class TestStore:
 
         timeline = store.get_timeline_by_session("sess-bulk")
 
-        contents = [row["content"] for row in timeline]
+        contents = [row.content for row in timeline]
         assert "第一问" in contents
         assert "第二问" in contents
         assert "第一问 LLM 摘要" in contents
         assert "第二问 LLM 摘要" in contents
         assert "诊断仍叠加展示" in contents
         assert "第一问完整回复" not in contents
-        summaries = [row for row in timeline if row["type"] == "ai_summary"]
-        assert [row["prompt_id"] for row in summaries] == [first_prompt_id, second_prompt_id]
-        assert [row["has_full_reply"] for row in summaries] == [1, 1]
+        summaries = [row for row in timeline if row.type == "ai_summary"]
+        assert [row.prompt_id for row in summaries] == [first_prompt_id, second_prompt_id]
+        assert [row.has_full_reply for row in summaries] == [1, 1]
 
     def test_get_known_session_shas_returns_latest_sha_per_student(self, store):
         store.replace_session_messages("sess-1", "alice", [], "raw-1", "sha-1")
@@ -671,7 +664,7 @@ class TestStore:
 
         rows = store.get_sessions_by_student("alice")
         assert len(rows) == 1
-        assert rows[0]["student_id"] == "alice"
-        assert rows[0]["session_title"] == "Alice title"
-        assert rows[0]["work_dir"] == "/work/alice"
+        assert rows[0].session_id == "sess-owner"
+        assert rows[0].title == "Alice title"
+        assert rows[0].work_dir == "/work/alice"
         assert store.get_sessions_by_student("bob") == []

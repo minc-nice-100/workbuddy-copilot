@@ -209,4 +209,6 @@ class WindowsWorkBuddyData(WorkBuddyDataAdapter):
 
     Transcript lookup is inherited from the content-indexed adapter, so the
     Windows implementation never tries to derive a project directory from cwd.
+
+    Satisfies the PlatformAdapter protocol through WorkBuddyDataAdapter.
     """

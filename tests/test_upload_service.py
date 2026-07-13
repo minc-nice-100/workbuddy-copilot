@@ -19,7 +19,7 @@ def store(tmp_path) -> Store:
 
 @pytest.fixture
 def service(store: Store) -> UploadRequestService:
-    return UploadRequestService(store)
+    return UploadRequestService(store.uploads)
 
 
 def test_transfer_and_analysis_states_and_errors_are_independent(
@@ -190,7 +190,7 @@ def test_service_reports_not_found_for_missing_or_other_student(
 
 def test_service_detects_compare_and_set_conflict(store: Store, service: UploadRequestService, monkeypatch):
     request_id = service.create("mentor-1", "student-a")
-    real_cas = store.compare_and_set_upload_request_axis
+    real_cas = store.uploads.compare_and_set_upload_request_axis
 
     def concurrent_writer(*args, **kwargs):
         real_cas(
@@ -203,7 +203,7 @@ def test_service_detects_compare_and_set_conflict(store: Store, service: UploadR
         )
         return 0
 
-    monkeypatch.setattr(store, "compare_and_set_upload_request_axis", concurrent_writer)
+    monkeypatch.setattr(store.uploads, "compare_and_set_upload_request_axis", concurrent_writer)
 
     with pytest.raises(InvalidStateTransition, match="concurrent.*running"):
         service.mark_transfer(request_id, "student-a", "failed", error="offline")

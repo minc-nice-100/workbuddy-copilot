@@ -17,7 +17,10 @@ from .workbuddy import WorkBuddyDataAdapter
 
 
 class MacOSWorkBuddyData(WorkBuddyDataAdapter):
-    """Named macOS adapter kept separate from future Windows path logic."""
+    """Named macOS adapter kept separate from future Windows path logic.
+
+    Satisfies the PlatformAdapter protocol through WorkBuddyDataAdapter.
+    """
 
 
 class StudentCoordinatorCommandCallback:

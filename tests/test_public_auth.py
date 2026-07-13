@@ -8,7 +8,7 @@ from copilot.app_context import AppContext
 from copilot.connections import WSRegistry
 from copilot.eventbus import EventBus
 from copilot.service import create_app
-from copilot.services import AnalysisService, MessageService, SessionQueryService
+from copilot.services import AnalysisService, MessageService
 from copilot.store import Store
 
 
@@ -47,8 +47,10 @@ def _build_public_app(tmp_path, *, auth: dict | None = None):
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=AnalysisService(store, _fake_llm, config, bus),
-        session_svc=SessionQueryService(store, config),
         message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,

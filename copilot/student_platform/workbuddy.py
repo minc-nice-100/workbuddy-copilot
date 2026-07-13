@@ -26,6 +26,9 @@ DESCRIPTOR_TRAVERSAL_SUPPORTED = (
 )
 
 
+from .protocols import PlatformAdapter
+
+
 @dataclass(frozen=True)
 class AdapterFailure:
     """A recoverable, user-safe description of a local WorkBuddy failure."""
@@ -151,7 +154,7 @@ def filter_message_jsonl_text(content: str) -> str:
     return "".join(kept)
 
 
-class WorkBuddyDataAdapter:
+class WorkBuddyDataAdapter(PlatformAdapter):
     """Read one explicit WorkBuddy config directory without OS path guesses.
 
     The adapter does not infer a current session from ``last_activity_at``:

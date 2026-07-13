@@ -12,7 +12,7 @@ from copilot.app_context import AppContext, get_analysis_service, get_store
 from copilot.connections import WSRegistry
 from copilot.eventbus import EventBus
 from copilot.service import _handle_stop_background, app, create_app
-from copilot.services import AnalysisService, MessageService, SessionQueryService
+from copilot.services import AnalysisService, MessageService
 from copilot.store import Store
 
 
@@ -87,9 +87,11 @@ def _build_real_report_app(tmp_path):
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=analysis_svc,
-        session_svc=SessionQueryService(store, config),
-        message_svc=MessageService(store, bus),
+                message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
     )
@@ -180,9 +182,11 @@ def test_tail_only_stop_is_not_recoverable_after_restart(tmp_path):
     context = AppContext(
         config=config,
         store=restarted_store,
+        session_store=restarted_store.sessions,
+        message_store=restarted_store.messages,
+        upload_store=restarted_store.uploads,
         analysis_svc=restarted_service,
-        session_svc=SessionQueryService(restarted_store, config),
-        message_svc=MessageService(restarted_store, bus),
+                message_svc=MessageService(restarted_store, bus),
         bus=bus,
         ws_registry=WSRegistry(send_timeout=0.05),
     )
@@ -462,9 +466,11 @@ def test_lifespan_does_not_recover_tail_only_report_from_later_full_upload(tmp_p
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=analysis_svc,
-        session_svc=SessionQueryService(store, config),
-        message_svc=MessageService(store, bus),
+                message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
     )
@@ -584,9 +590,11 @@ def test_lifespan_recovers_pending_stop_reports_before_serving(tmp_path):
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=analysis_svc,
-        session_svc=SessionQueryService(store, config),
-        message_svc=MessageService(store, bus),
+                message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
     )
@@ -661,9 +669,11 @@ def test_lifespan_clears_pending_without_duplicate_when_analysis_already_exists(
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=analysis_svc,
-        session_svc=SessionQueryService(store, config),
-        message_svc=MessageService(store, bus),
+                message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
     )
@@ -751,9 +761,11 @@ def test_lifespan_matches_pending_reports_to_nearest_raw_transcript(tmp_path):
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=analysis_svc,
-        session_svc=SessionQueryService(store, config),
-        message_svc=MessageService(store, bus),
+                message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
     )

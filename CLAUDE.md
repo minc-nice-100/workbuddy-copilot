@@ -57,3 +57,17 @@
 ## 端口说明
 - 闭环 P0/P1 用 FastAPI TestClient（进程内，不占端口）。
 - 真机 E2E（P3）需绑定 8765；当前有运行中的旧服务占用，跑真机 E2E 前先停旧服务。
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/` (GitHub Issues disabled on this repo). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the canonical label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — one `CONTEXT.md` + `docs/adr/` at the root. See `docs/agents/domain.md`.

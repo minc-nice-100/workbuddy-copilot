@@ -2,7 +2,6 @@
 
 封装核心业务流程，与 HTTP/WS 无关，可被路由、hook、定时任务复用。
 - AnalysisService：transcript → LLM → 入库 → 发事件
-- SessionQueryService：对话列表 / 当前会话 / 时间线
 """
 from __future__ import annotations
 
@@ -15,7 +14,7 @@ from typing import Any
 
 from .config import _validate_analysis_max_concurrency
 from .models import (
-    Student, Conversation, TimelineEntry, AnalysisResult,
+    AnalysisResult,
 )
 from .eventbus import EventBus
 from .llm import coerce_analysis_outcome
@@ -249,121 +248,22 @@ class AnalysisService:
         return result
 
 
-class SessionQueryService:
-    """会话查询服务。
-
-    统一查询入口，浮标和导师台共用。
-    所有会话查询均读取 copilot.db sessions 表。
-    """
-
-    def __init__(self, copilot_repo, config: dict):
-        """
-        Args:
-            copilot_repo: CopilotRepo 实例
-            config: 全局配置
-        """
-        self.copilot = copilot_repo
-        self.config = config
-
-    def list_students(self) -> list[Student]:
-        """学员列表 + 状态概览。"""
-        student_id = self.config.get("student_id", "student-1")
-        student_name = self.config.get("student_name") or student_id
-
-        rows = self.copilot.students_overview()
-        students = []
-        for r in rows:
-            sid = r.get("student_id", student_id)
-            display_name = r.get("display_name") or (student_name if sid == student_id else "") or sid
-            # 实时计算有效会话数
-            sessions = self.list_sessions(sid)
-            students.append(Student(
-                student_id=sid,
-                display_name=display_name,
-                analysis_count=r.get("analysis_count", 0),
-                session_count=len(sessions),
-                last_ts=r.get("last_ts", 0),
-                last_topic=r.get("last_topic", ""),
-                last_severity=r.get("last_severity", "info"),
-                alert_count=r.get("alert_count", 0),
-                last_diagnosis=r.get("last_diagnosis", ""),
-            ))
-        return students
-
-    def list_sessions(self, student_id: str, limit: int = 1000) -> list[Conversation]:
-        """某学员的对话列表（以 copilot.db sessions 表为权威源）。"""
-        rows = self.copilot.get_sessions_by_student(student_id, limit=limit)
-        return [Conversation(
-            session_id=r["session_id"],
-            work_dir=r.get("work_dir", ""),
-            title=r.get("session_title", ""),
-            group_type=r.get("group_type", "") or "",
-            space_name=r.get("space_name", "") or "",
-            created_at=r.get("created_at", 0) or 0,
-            analysis_count=r.get("analysis_count", 0),
-            message_count=r.get("message_count", 0),
-            alert_count=r.get("alert_count", 0),
-            last_diagnosis=r.get("last_diagnosis", ""),
-            last_topic=r.get("last_topic", ""),
-            last_severity=r.get("last_severity", "info"),
-            last_is_technical=r.get("last_is_technical", 0),
-            last_activity_at=r.get("last_ts", 0),
-        ) for r in rows]
-
-    def get_timeline(self, session_id: str) -> list[TimelineEntry]:
-        """某对话的时间线（三表 UNION）。"""
-        rows = self.copilot.get_timeline_by_session(session_id)
-        return [TimelineEntry(
-            type=r.get("type", ""),
-            content=r.get("content", ""),
-            created_at=r.get("created_at", 0),
-            session_id=r.get("session_id", session_id),
-            seq_in_session=r.get("seq_in_session"),
-            prompt_id=r.get("prompt_id"),
-            reply_ref=r.get("reply_ref"),
-            has_summary=bool(r.get("has_summary", False)),
-            has_full_reply=bool(r.get("has_full_reply", False)),
-            suggestion=r.get("suggestion", ""),
-            severity=r.get("severity", ""),
-            understanding=r.get("understanding", "") or "",
-            topic=r.get("topic", "") or "",
-            is_technical=bool(r.get("is_technical", 0)),
-        ) for r in rows]
-
-    def get_active_session(
-        self,
-        work_dir: str | None = None,
-        student_id: str | None = None,
-    ) -> dict | None:
-        """当前激活的对话（浮标跟随用），读取 sessions 表。"""
-        return self.copilot.get_active_session_from_table(work_dir=work_dir, student_id=student_id)
-
-    def list_all_sessions_with_title(
-        self,
-        work_dir: str | None = None,
-        student_id: str | None = None,
-        limit: int = 8,
-    ) -> list[dict]:
-        """列出最近会话（带标题），浮标切换栏用，读取 sessions 表。"""
-        return self.copilot.list_sessions_from_table(
-            work_dir=work_dir,
-            student_id=student_id,
-            limit=limit,
-        )
-
-
 class MessageService:
     """Mentor-to-student message workflow."""
 
-    def __init__(self, copilot_repo, event_bus: EventBus):
+    def __init__(self, copilot_repo, event_bus: EventBus, session_store=None):
         self.copilot = copilot_repo
         self.bus = event_bus
+        self._session_store = session_store
 
     async def send(self, student_id: str, mentor_id: str | None, text: str) -> dict[str, Any]:
         """Persist a mentor message, publish it, and report delivery status."""
         resolved_mentor_id = mentor_id or "mentor"
         message_id = uuid.uuid4().hex
-        self.copilot.upsert_student(student_id)
+        if self._session_store is not None:
+            self._session_store.upsert_student(student_id)
+        elif hasattr(self.copilot, "upsert_student"):
+            self.copilot.upsert_student(student_id)
         row_id = self.copilot.add_mentor_message(
             student_id=student_id,
             mentor_id=resolved_mentor_id,

@@ -14,8 +14,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..app_context import get_session_service, get_store
-from ..services import SessionQueryService
+from ..app_context import get_store
 from ..store import Store
 
 router = APIRouter(prefix="/api/mentor", tags=["mentor"])
@@ -66,19 +65,19 @@ def _rebuild_transcript_from_history(store: Store, session_id: str) -> dict[str,
 
 
 @router.get("/students")
-async def list_students(session_svc: SessionQueryService = Depends(get_session_service)):
+async def list_students(store: Store = Depends(get_store)):
     """返回学员列表 + 状态概览。"""
-    students = session_svc.list_students()
+    students = store.students_overview()
     return {"items": [s.__dict__ for s in students]}
 
 
 @router.get("/students/{student_id}/sessions")
 async def list_student_sessions(
     student_id: str,
-    session_svc: SessionQueryService = Depends(get_session_service),
+    store: Store = Depends(get_store),
 ):
     """返回指定学员的最近活跃对话列表。"""
-    conversations = session_svc.list_sessions(student_id)
+    conversations = store.get_sessions_by_student(student_id)
     items = []
     for c in conversations:
         row = c.__dict__.copy()
@@ -90,10 +89,10 @@ async def list_student_sessions(
 @router.get("/sessions/{session_id}/timeline")
 async def get_timeline(
     session_id: str,
-    session_svc: SessionQueryService = Depends(get_session_service),
+    store: Store = Depends(get_store),
 ):
     """返回指定会话按时间排序的事件列表（prompt|ai_summary|analysis）。"""
-    entries = session_svc.get_timeline(session_id)
+    entries = store.get_timeline_by_session(session_id)
     return {"items": [e.__dict__ for e in entries]}
 
 

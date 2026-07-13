@@ -11,15 +11,35 @@ from copilot.connections import WSRegistry
 from copilot.eventbus import EventBus
 from copilot.llm import AnalysisOutcome
 from copilot.service import (
-    _analyze_uploaded_session_background,
     _handle_stop_background,
     create_app,
 )
-from copilot.services import AnalysisService, MessageService, SessionQueryService
+from copilot.services import AnalysisService, MessageService
 from copilot.store import Store
+from copilot.upload_analysis import UploadAnalysisService
+from copilot.upload_service import UploadRequestService
 
 
 TOKEN = "upload-token"
+
+
+async def _analyze_uploaded_session_background(
+    context: AppContext,
+    student_id: str,
+    session_id: str,
+    turns: list[dict[str, Any]],
+    sha: str,
+) -> tuple[bool, str]:
+    """Compatibility wrapper: delegates to UploadAnalysisService.analyze_session."""
+    upload_svc = context.upload_svc or UploadRequestService(context.store.uploads)
+    svc = UploadAnalysisService(
+        store=context.store,
+        analysis_svc=context.analysis_svc,
+        upload_svc=upload_svc,
+        bus=context.bus,
+        config=context.config,
+    )
+    return await svc.analyze_session(student_id, session_id, turns, sha)
 
 
 class FakeWebSocket:
@@ -99,9 +119,11 @@ def _build_upload_app(tmp_path, *, llm_enabled: bool = True):
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=AnalysisService(store, fake_llm, config, bus),
-        session_svc=SessionQueryService(store, config),
-        message_svc=MessageService(store, bus),
+                message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
     )
@@ -184,9 +206,11 @@ def test_stop_and_full_upload_share_configured_analysis_gate(tmp_path):
         context = AppContext(
             config=config,
             store=store,
+            session_store=store.sessions,
+            message_store=store.messages,
+            upload_store=store.uploads,
             analysis_svc=analysis_svc,
-            session_svc=SessionQueryService(store, config),
-            message_svc=MessageService(store, bus),
+                        message_svc=MessageService(store, bus),
             bus=bus,
             ws_registry=WSRegistry(send_timeout=0.05),
         )
@@ -280,9 +304,11 @@ def test_bulk_analysis_gate_covers_only_llm_invocation(tmp_path):
         context = AppContext(
             config=config,
             store=store,
+            session_store=store.sessions,
+            message_store=store.messages,
+            upload_store=store.uploads,
             analysis_svc=analysis_svc,
-            session_svc=SessionQueryService(store, config),
-            message_svc=MessageService(store, bus),
+                        message_svc=MessageService(store, bus),
             bus=bus,
             ws_registry=WSRegistry(send_timeout=0.05),
         )
@@ -639,9 +665,11 @@ def test_same_sha_retries_background_analysis_after_previous_failure(tmp_path):
     context = AppContext(
         config=config,
         store=store,
+        session_store=store.sessions,
+        message_store=store.messages,
+        upload_store=store.uploads,
         analysis_svc=AnalysisService(store, flaky_llm, config, bus),
-        session_svc=SessionQueryService(store, config),
-        message_svc=MessageService(store, bus),
+                message_svc=MessageService(store, bus),
         bus=bus,
         ws_registry=registry,
     )
@@ -776,9 +804,11 @@ def test_stale_bulk_analysis_result_is_discarded_after_new_sha_replaces_it(tmp_p
         context = AppContext(
             config=config,
             store=store,
+            session_store=store.sessions,
+            message_store=store.messages,
+            upload_store=store.uploads,
             analysis_svc=AnalysisService(store, blocked_llm, config, bus),
-            session_svc=SessionQueryService(store, config),
-            message_svc=MessageService(store, bus),
+                        message_svc=MessageService(store, bus),
             bus=bus,
             ws_registry=registry,
         )
@@ -861,9 +891,11 @@ def test_stop_and_bulk_analysis_share_configured_concurrency_gate(tmp_path):
         context = AppContext(
             config=config,
             store=store,
+            session_store=store.sessions,
+            message_store=store.messages,
+            upload_store=store.uploads,
             analysis_svc=analysis_svc,
-            session_svc=SessionQueryService(store, config),
-            message_svc=MessageService(store, bus),
+                        message_svc=MessageService(store, bus),
             bus=bus,
             ws_registry=registry,
         )

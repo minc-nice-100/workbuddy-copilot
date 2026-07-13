@@ -120,9 +120,9 @@ async def _run_bulk_resummarize_case(tmp_path):
     ]
 
     timeline = store.get_timeline_by_session("sess-bulk")
-    summaries = [row for row in timeline if row["type"] == "ai_summary"]
-    assert [row["content"] for row in summaries] == [
+    summaries = [row for row in timeline if row.type == "ai_summary"]
+    assert [row.content for row in summaries] == [
         "摘要：第一问 -> 第一答 A\n\n第一答 B",
         "摘要：第二问 -> 第二答",
     ]
-    assert all(str(row["reply_ref"]).startswith("msg:") for row in summaries)
+    assert all(str(row.reply_ref).startswith("msg:") for row in summaries)
