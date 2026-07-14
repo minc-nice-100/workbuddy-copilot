@@ -257,7 +257,7 @@ class UploadAnalysisService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _filtered_content_to_raw(filtered_content: Any) -> str:
+    def filtered_content_to_raw(filtered_content: Any) -> str:
         """Normalize already-filtered uploaded message content into JSONL text."""
         if filtered_content is None:
             return ""
@@ -269,7 +269,7 @@ class UploadAnalysisService:
             for key in ("messages", "items", "lines"):
                 value = filtered_content.get(key)
                 if isinstance(value, list):
-                    return UploadAnalysisService._filtered_content_to_raw(value)
+                    return UploadAnalysisService.filtered_content_to_raw(value)
             return json.dumps(filtered_content, ensure_ascii=False)
         if isinstance(filtered_content, list):
             lines: list[str] = []
@@ -282,7 +282,7 @@ class UploadAnalysisService:
         return str(filtered_content)
 
     @staticmethod
-    def _bulk_upload_llm_enabled(config: dict[str, Any]) -> bool:
+    def bulk_upload_llm_enabled(config: dict[str, Any]) -> bool:
         analysis_cfg = config.get("analysis", {}) or {}
         if not analysis_cfg.get("enable_llm", True):
             return False

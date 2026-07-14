@@ -353,7 +353,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="sha is required")
 
         request_id = (data.request_id or "").strip() or None
-        analysis_scheduled = UploadAnalysisService._bulk_upload_llm_enabled(context.config)
+        analysis_scheduled = UploadAnalysisService.bulk_upload_llm_enabled(context.config)
 
         known = store.get_known_session_shas(student_id)
         known_entry = known.get(session_id) or {}
@@ -434,7 +434,7 @@ def create_app(context: AppContext | None = None) -> FastAPI:
                 "retry_analysis": False,
             }
 
-        raw = UploadAnalysisService._filtered_content_to_raw(data.filtered_content)
+        raw = UploadAnalysisService.filtered_content_to_raw(data.filtered_content)
         snap = parse_text(raw)
         turns = parse_turns(snap.messages)
         try:
