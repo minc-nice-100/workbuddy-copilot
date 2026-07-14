@@ -88,6 +88,16 @@ class TestFrontendStructure:
         assert "完成后灰显对话将陆续点亮" not in js
         assert 'id="retry-analysis"' in html
 
+    def test_app_js_handles_401_by_clearing_token_and_prompting_reauth(self):
+        """P1-16: 401 响应时清除 token、显示认证失败、提示重新输入。"""
+        js_path = Path(__file__).parent.parent / "copilot" / "static" / "mentor" / "app.js"
+        content = js_path.read_text(encoding="utf-8")
+
+        assert "401" in content, "authFetch 必须检测 401 状态码"
+        assert "clearMentorToken" in content, "401 时必须清除过期 token"
+        assert "认证失败" in content, "401 时必须显示认证失败提示"
+        assert "askMentorToken" in content, "401 后必须提示重新输入 mentor token"
+
 
 class TestFrontendServed:
     """前端可通过 HTTP 访问。"""
