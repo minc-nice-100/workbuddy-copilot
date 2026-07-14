@@ -1,10 +1,16 @@
 name: Build and Publish Docker Image
 
 on:
-  push:
-    branches: [main, feat/architecture-deepen]
-    tags: ["v*"]
+  # 手动触发
   workflow_dispatch:
+  # 打 tag 时直接构建发布
+  push:
+    tags: ["v*"]
+  # push 到主分支后，等 Test 通过才构建
+  workflow_run:
+    workflows: [Test]
+    types: [completed]
+    branches: [main, "feat/*"]
 
 env:
   REGISTRY: ghcr.io
@@ -12,6 +18,8 @@ env:
 
 jobs:
   build-and-push:
+    # tag push 和手动触发始终允许；workflow_run 只在 Test 成功时触发
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
