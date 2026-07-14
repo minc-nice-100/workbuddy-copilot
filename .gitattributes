@@ -1,0 +1,9 @@
+# Docker/Linux 文件必须 LF 行尾
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+docker-entrypoint.sh text eol=lf
+.dockerignore text eol=lf
+*.sh text eol=lf
+
+# GitHub Actions workflows
+.github/workflows/*.yml text eol=lf
