@@ -85,8 +85,8 @@ class SessionStore:
                      s.student_id,
                      s.display_name AS display_name,
                      COALESCE(COUNT(a.id), 0) AS analysis_count,
-                     COALESCE(COUNT(DISTINCT a.session_id), 0) AS session_count,
-                     COALESCE(MAX(a.created_at), s.created_at, 0) AS last_ts,
+                     COALESCE(COUNT(DISTINCT ss.session_id), 0) AS session_count,
+                     COALESCE(MAX(a.created_at), MAX(ss.last_activity_at), s.created_at, 0) AS last_ts,
                      COALESCE((
                        SELECT a2.topic
                        FROM analyses a2
@@ -115,16 +115,17 @@ class SessionStore:
                        LIMIT 1
                      ), '') AS last_diagnosis
                    FROM students s
+                   LEFT JOIN sessions ss ON ss.student_id = s.student_id
                    LEFT JOIN analyses a ON a.student_id = s.student_id
                    GROUP BY s.student_id
-                   ORDER BY COALESCE(MAX(a.created_at), s.created_at, 0) DESC
+                   ORDER BY COALESCE(MAX(a.created_at), MAX(ss.last_activity_at), s.created_at, 0) DESC
                    LIMIT ?""",
                 (limit,),
             ).fetchall()
             return [
                 Student(
                     student_id=r["student_id"],
-                    display_name=r["display_name"] or "",
+                    display_name=r["display_name"] or f"学员 {r['student_id']}",
                     analysis_count=r["analysis_count"] or 0,
                     session_count=r["session_count"] or 0,
                     last_ts=r["last_ts"] or 0,

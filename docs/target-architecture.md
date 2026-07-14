@@ -62,7 +62,7 @@
 │                              │ 依赖注入(Depends/app.state)                       │
 │ app_context（组合根：唯一构建 CONFIG/STORE/Services/EventBus/WSRegistry 处）      │
 │                              │                                                   │
-│ Service: AnalysisService · SessionQueryService · MessageService · StudentAssist │
+│ Service: AnalysisService · MessageService · UploadRequestService · UploadAnalysisService │
 │                              │ 发布/订阅            │ 端口消失，直接调 Store        │
 │ EventBus(单向 pub/sub) ──▶ WSRegistry(订阅者)        Store (Repository)           │
 │   floats: dict[sid,set[ws]]  mentors: set[ws]        │                            │
