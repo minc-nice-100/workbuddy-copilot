@@ -7,6 +7,8 @@ import pytest
 from copilot.wb_sync import _server_url, annotate_sessions_with_groups
 from copilot.student_platform.workbuddy import WorkBuddyDataError
 
+pytestmark = pytest.mark.student
+
 
 def test_annotate_sessions_marks_space_when_cwd_is_workspace_path():
     sessions = [

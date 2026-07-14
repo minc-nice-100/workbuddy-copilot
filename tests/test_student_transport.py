@@ -16,6 +16,8 @@ from copilot.student_core.transport import (
     TemporaryNetworkError,
 )
 
+pytestmark = pytest.mark.student
+
 
 def event() -> HookEvent:
     return HookEvent(

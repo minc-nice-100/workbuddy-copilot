@@ -7,6 +7,10 @@ import os
 import subprocess
 import sys
 
+import pytest
+
+pytestmark = pytest.mark.student
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 HOOK = PROJECT_ROOT / "copilot" / "hook.py"

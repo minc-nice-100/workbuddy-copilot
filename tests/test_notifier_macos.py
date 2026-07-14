@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from copilot.notifier_macos import MacNotifier
+
+pytestmark = pytest.mark.macos
 
 
 def test_notify_passes_title_and_body_via_osascript_argv(monkeypatch):

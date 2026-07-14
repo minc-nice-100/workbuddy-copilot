@@ -4,7 +4,11 @@ import hashlib
 import json
 import sqlite3
 
+import pytest
+
 from copilot import wb_upload
+
+pytestmark = pytest.mark.student
 
 
 def _line(obj: dict) -> str:

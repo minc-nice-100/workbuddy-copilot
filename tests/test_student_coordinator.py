@@ -18,6 +18,8 @@ from copilot.student_core.transport import (
 )
 from copilot.student_core.coordinator import StudentCoordinator
 
+pytestmark = pytest.mark.student
+
 
 def event() -> HookEvent:
     return HookEvent(

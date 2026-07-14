@@ -5,7 +5,11 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from copilot.student_core.agent import StudentAgent
+
+pytestmark = pytest.mark.student
 from copilot.student_core.coordinator import StudentCoordinator
 from copilot.student_core.models import HookEvent
 from copilot.student_core.spool import EventSpool

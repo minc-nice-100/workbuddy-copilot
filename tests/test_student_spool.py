@@ -12,6 +12,8 @@ from copilot.student_core.models import HookEvent
 from copilot.student_core.spool import EventSpool, consume_one
 from copilot.student_core.transport import Accepted, TemporaryNetworkError
 
+pytestmark = pytest.mark.student
+
 
 def make_event(**overrides) -> HookEvent:
     values = {

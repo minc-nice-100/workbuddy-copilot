@@ -12,6 +12,8 @@ import pytest
 from copilot.student_platform.macos import macos_workbuddy_data
 from copilot.student_platform.workbuddy import WorkBuddyDataAdapter
 
+pytestmark = pytest.mark.student
+
 
 FIXTURE_MANIFEST = (
     Path(__file__).parent / "fixtures" / "workbuddy" / "macos" / "manifest.json"

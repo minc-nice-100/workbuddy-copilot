@@ -5,9 +5,13 @@ import json
 import threading
 from urllib.parse import parse_qs, urlparse
 
+import pytest
+
 import copilot.floating_native as floating_native
 from copilot.floating_native import CopilotNativeApp, _build_float_ws_url, _panel_origin_for_icon
 from copilot.student_platform.macos import StudentCoordinatorCommandCallback
+
+pytestmark = pytest.mark.macos
 
 
 def test_panel_origin_places_panel_left_of_right_side_icon_and_clamps_to_screen():

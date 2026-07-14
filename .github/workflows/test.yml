@@ -17,24 +17,18 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements-server.txt pytest pytest-asyncio
+        run: >
+          pip install
+          -r requirements-server.txt
+          pytest
+          pytest-asyncio
 
       - name: Run server tests
         run: >
           python -m pytest tests/
           -q --tb=short
-          --ignore=tests/e2e
+          -m "not (macos or student or windows or e2e)"
           --ignore=tests/fixtures
-          --ignore=tests/test_floating_native_phase3.py
-          --ignore=tests/test_notifier_macos.py
-          --ignore=tests/test_wb_sync.py
-          --ignore=tests/test_wb_upload.py
-          --ignore=tests/test_windows_adapter.py
-          --ignore=tests/test_windows_install_contract.py
-          --ignore=tests/test_workbuddy_adapter.py
-          --ignore=tests/test_student_agent.py
-          --ignore=tests/test_student_coordinator.py
-          --ignore=tests/test_student_spool.py
-          --ignore=tests/test_student_transport.py
-          --ignore=tests/test_hook_subprocess.py
           --ignore=tests/test_platform_imports.py
+          --ignore=tests/test_floating_native_phase3.py
+          --ignore=tests/e2e/test_student_agent_system.py
