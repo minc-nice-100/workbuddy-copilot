@@ -76,7 +76,7 @@ class MentorMessage:
 @dataclass
 class TimelineEntry:
     """时间线条目（三表 UNION 的统一格式）。"""
-    type: str  # prompt / ai_summary / analysis
+    type: str  # prompt / ai_summary / analysis / mentor_message
     content: str = ""
     created_at: float = 0.0
     session_id: str = ""
@@ -91,6 +91,10 @@ class TimelineEntry:
     understanding: str = ""
     topic: str = ""
     is_technical: bool = False
+    # mentor_message 额外字段
+    delivered_at: Optional[float] = None
+    mentor_id: str = ""
+    message_id: str = ""
 
 
 @dataclass

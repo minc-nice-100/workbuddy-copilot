@@ -1435,6 +1435,9 @@ class SessionStore:
                     understanding=r.get("understanding", "") or "",
                     topic=r.get("topic", "") or "",
                     is_technical=bool(r.get("is_technical", 0)),
+                    delivered_at=r.get("delivered_at"),
+                    mentor_id=r.get("mentor_id", ""),
+                    message_id=r.get("message_id", ""),
                 )
                 for r in events
             ]
