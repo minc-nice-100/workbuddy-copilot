@@ -34,10 +34,10 @@ COPY config.example.json ./config.example.json
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# 创建非 root 用户运行服务
-RUN useradd --create-home --shell /bin/bash copilot \
-    && mkdir -p /data \
-    && chown -R copilot:copilot /app /data
+# 创建 copilot 系统用户及数据目录（类似 postgres 用户模式）
+RUN useradd --system --user-group --home-dir /var/lib/copilot --shell /bin/bash copilot \
+    && mkdir -p /var/lib/copilot/data \
+    && chown -R copilot:copilot /app /var/lib/copilot
 
 USER copilot
 

@@ -11,8 +11,8 @@ services:
     ports:
       - "8765:8765"
     volumes:
-      # 持久化 SQLite 数据库
-      - copilot-data:/data
+      # 持久化 SQLite 数据库（参照 PostgreSQL 容器模式）
+      - copilot-data:/var/lib/copilot/data
       # 可选：挂载自定义 config.json（取消注释并创建 ./config.json）
       # - ./config.json:/app/config.json:ro
     # 从 .env 文件加载环境变量（复制 .env.example 为 .env 并编辑）
@@ -30,7 +30,7 @@ services:
       - COPILOT_STUDENT_TOKEN=${COPILOT_STUDENT_TOKEN:-}
       - COPILOT_MENTOR_TOKEN=${COPILOT_MENTOR_TOKEN:-}
       # 数据库路径
-      - COPILOT_DB_PATH=${COPILOT_DB_PATH:-/data/copilot.db}
+      - COPILOT_DB_PATH=${COPILOT_DB_PATH:-/var/lib/copilot/data/copilot.db}
     # 资源限制
     deploy:
       resources:

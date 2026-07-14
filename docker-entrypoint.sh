@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 # Docker 容器入口脚本：根据环境变量生成 config.json
+# 参照 PostgreSQL 容器模式：以 copilot 用户运行，数据目录为 /var/lib/copilot/data
 set -e
 
 CONFIG_FILE="${COPILOT_CONFIG_FILE:-/app/config.json}"
-DB_PATH="${COPILOT_DB_PATH:-/data/copilot.db}"
+DB_PATH="${COPILOT_DB_PATH:-/var/lib/copilot/data/copilot.db}"
 DB_DIR="$(dirname "$DB_PATH")"
 
-# 确保数据目录存在
-mkdir -p "$DB_DIR"
+# 确保数据目录存在且权限正确
+if [ ! -d "$DB_DIR" ]; then
+    mkdir -p "$DB_DIR" 2>/dev/null || {
+        echo "ERROR: 无法创建数据目录 $DB_DIR，请检查 volume 挂载权限" >&2
+        exit 1
+    }
+fi
+if [ ! -w "$DB_DIR" ]; then
+    echo "WARNING: 数据目录 $DB_DIR 不可写，请确保挂载的 volume 属于 copilot 用户" >&2
+fi
 
 # 生成 config.json
 cat > "$CONFIG_FILE" <<EOF
