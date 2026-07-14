@@ -1,0 +1,52 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+venv/
+.venv/
+*.egg
+
+# Tests
+tests/
+.pytest_cache/
+.scratch/
+
+# Docs (not needed at runtime)
+docs/
+AGENTS.md
+README.md
+
+# macOS client (not needed in Linux server container)
+requirements-macos.txt
+requirements-core.txt
+requirements.txt
+
+# Development
+legacy/
+*.sh
+install.sh
+start_service.sh
+start_menubar.sh
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# OS
+.DS_Store
+Thumbs.db

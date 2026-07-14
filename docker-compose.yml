@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  copilot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/minc-nice-100/workbuddy-copilot:latest
+    container_name: workbuddy-copilot
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      # 持久化 SQLite 数据库
+      - copilot-data:/data
+      # 可选：挂载自定义 config.json（取消注释并创建 ./config.json）
+      # - ./config.json:/app/config.json:ro
+    environment:
+      # LLM API Key（必填）
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      # 服务配置
+      - COPILOT_HOST=0.0.0.0
+      - COPILOT_PORT=8765
+      # 公网模式（启用后必须设置 student/mentor token）
+      - COPILOT_PUBLIC=${COPILOT_PUBLIC:-0}
+      # 认证 Token（公网模式必填）
+      - COPILOT_STUDENT_TOKEN=${COPILOT_STUDENT_TOKEN:-}
+      - COPILOT_MENTOR_TOKEN=${COPILOT_MENTOR_TOKEN:-}
+      # 数据库路径
+      - COPILOT_DB_PATH=${COPILOT_DB_PATH:-/data/copilot.db}
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  copilot-data:
+    driver: local

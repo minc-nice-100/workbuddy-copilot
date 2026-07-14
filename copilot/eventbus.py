@@ -38,15 +38,19 @@ class EventBus:
             log.info("EventBus 移除订阅者，当前 %d 个", len(self._subscribers))
 
     async def publish(self, payload: dict[str, Any]) -> None:
-        """发布事件，所有订阅者异步收到。
+        """发布事件，所有订阅者并发收到。
 
         某个订阅者失败不影响其他订阅者。
         """
-        for sub in list(self._subscribers):
-            try:
-                await sub(payload)
-            except Exception as e:
-                log.warning("EventBus 订阅者失败: %s", e)
+        if not self._subscribers:
+            return
+        results = await asyncio.gather(
+            *(sub(payload) for sub in self._subscribers),
+            return_exceptions=True,
+        )
+        for result in results:
+            if isinstance(result, Exception):
+                log.warning("EventBus 订阅者失败: %s", result)
 
 
 # 全局单例
