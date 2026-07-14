@@ -91,7 +91,9 @@ def test_online_send_targets_one_float_but_waits_for_student_receipt(tmp_path):
             "timestamp": float_a.sent[0]["timestamp"],
         }
         assert float_b.sent == []
-        assert mentor_ws.sent == []
+        # mentor_message now also fans out to mentors for real-time echo
+        assert len(mentor_ws.sent) == 1
+        assert mentor_ws.sent[0]["type"] == "mentor_message"
 
         rows = store.list_messages_since("student-a", 0)
         assert len(rows) == 1
@@ -101,13 +103,15 @@ def test_online_send_targets_one_float_but_waits_for_student_receipt(tmp_path):
         assert await service.ack(result["message_id"], "student-a") is True
         delivered_at = store.list_messages_since("student-a", 0)[0]["delivered_at"]
         assert delivered_at is not None
-        assert mentor_ws.sent == [{
+        # mentor now has: [0]=mentor_message echo, [1]=message_delivered receipt
+        assert len(mentor_ws.sent) == 2
+        assert mentor_ws.sent[1] == {
             "type": "message_delivered",
             "student_id": "student-a",
             "message_id": result["message_id"],
             "id": result["id"],
             "timestamp": delivered_at,
-        }]
+        }
 
     asyncio.run(scenario())
 
