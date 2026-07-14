@@ -1376,6 +1376,12 @@ class SessionStore:
         return events
 
     def _mentor_message_timeline_rows(self, c: sqlite3.Connection, session_id: str) -> list[dict]:
+        # mentor_messages 按 student_id 关联，因为发送时可能不绑定具体 session
+        student_row = c.execute(
+            "SELECT student_id FROM sessions WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+        student_id = student_row["student_id"] if student_row else ""
         rows = c.execute(
             """SELECT id, session_id, student_id, text AS content, created_at,
                       'mentor_message' AS type,
@@ -1394,8 +1400,8 @@ class SessionStore:
                       message_id AS message_id,
                       delivered_at AS delivered_at
                FROM mentor_messages
-               WHERE session_id = ?""",
-            (session_id,),
+               WHERE student_id = ?""",
+            (student_id,),
         ).fetchall()
         return [dict(r) for r in rows]
 
