@@ -32,6 +32,7 @@ requirements.txt
 # Development
 legacy/
 *.sh
+!docker-entrypoint.sh
 install.sh
 start_service.sh
 start_menubar.sh
