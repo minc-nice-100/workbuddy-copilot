@@ -1095,10 +1095,27 @@ function connectMentorWS() {
     // 正向事件：仅当前会话才插入（mentor_message 除外，按 student_id 匹配即可）
     if (payload.type === 'mentor_message') {
       if (state.currentStudentId && payload.student_id === state.currentStudentId) {
-        const entry = wsPayloadToTimeline(payload);
-        if (entry) {
-          state.timeline.push(entry);
+        // 去重：如果已有同一消息的乐观条目，更新它而不是重复插入
+        const msgId = payload.message_id || null;
+        const srvId = payload.id != null ? payload.id : null;
+        const existing = state.timeline.find(e =>
+          e.type === 'mentor_message' && (
+            (msgId && e.message_id === msgId) ||
+            (srvId && e.server_id === srvId)
+          )
+        );
+        if (existing) {
+          existing.delivered = !!payload.delivered;
+          existing.message_id = existing.message_id || msgId;
+          existing.server_id = existing.server_id || srvId;
+          existing._optimistic = false;
           renderTimeline();
+        } else {
+          const entry = wsPayloadToTimeline(payload);
+          if (entry) {
+            state.timeline.push(entry);
+            renderTimeline();
+          }
         }
       }
       return;
