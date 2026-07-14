@@ -1,0 +1,40 @@
+name: Test
+
+on:
+  push:
+    branches: [main, "feat/*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install server dependencies
+        run: pip install -r requirements-server.txt
+
+      - name: Run server tests
+        run: >
+          python -m pytest tests/
+          -q --tb=short
+          --ignore=tests/e2e
+          --ignore=tests/fixtures
+          --ignore=tests/test_floating_native_phase3.py
+          --ignore=tests/test_notifier_macos.py
+          --ignore=tests/test_wb_sync.py
+          --ignore=tests/test_wb_upload.py
+          --ignore=tests/test_windows_adapter.py
+          --ignore=tests/test_windows_install_contract.py
+          --ignore=tests/test_workbuddy_adapter.py
+          --ignore=tests/test_student_agent.py
+          --ignore=tests/test_student_coordinator.py
+          --ignore=tests/test_student_spool.py
+          --ignore=tests/test_student_transport.py
+          --ignore=tests/test_hook_subprocess.py
+          --ignore=tests/test_platform_imports.py
