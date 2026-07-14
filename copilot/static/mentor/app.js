@@ -1092,7 +1092,17 @@ function connectMentorWS() {
       return;
     }
 
-    // 正向事件：仅当前会话才插入
+    // 正向事件：仅当前会话才插入（mentor_message 除外，按 student_id 匹配即可）
+    if (payload.type === 'mentor_message') {
+      if (state.currentStudentId && payload.student_id === state.currentStudentId) {
+        const entry = wsPayloadToTimeline(payload);
+        if (entry) {
+          state.timeline.push(entry);
+          renderTimeline();
+        }
+      }
+      return;
+    }
     if (state.currentSessionId && payload.session_id === state.currentSessionId) {
       const entry = wsPayloadToTimeline(payload);
       if (entry) {
