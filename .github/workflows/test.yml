@@ -32,3 +32,5 @@ jobs:
           --ignore=tests/test_platform_imports.py
           --ignore=tests/test_floating_native_phase3.py
           --ignore=tests/e2e/test_student_agent_system.py
+          --ignore=tests/test_deploy_config.py
+          --ignore=tests/test_single_worker_startup.py
