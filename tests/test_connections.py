@@ -84,10 +84,16 @@ def test_mentor_message_targets_one_student_without_claiming_delivery_before_rec
             "timestamp": 10.0,
         }]
         assert other_float.sent == []
-        # A successful WebSocket write only means the server attempted delivery.
-        # StudentAgent must post its REST receipt before the mentor can see a
-        # durable "delivered" state.
-        assert mentor.sent == []
+        # mentor_message 同时发给导师台，用于实时回显
+        assert mentor.sent == [{
+            "type": "mentor_message",
+            "student_id": "student-a",
+            "message_id": "msg-1",
+            "id": 7,
+            "text": "Try a smaller example",
+            "mentor_id": "mentor-1",
+            "timestamp": 10.0,
+        }]
 
     asyncio.run(scenario())
 

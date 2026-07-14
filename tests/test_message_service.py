@@ -129,20 +129,24 @@ def test_ack_publishes_delivery_receipt_to_mentors_after_offline_catchup(tmp_pat
 
         sent = await service.send("student-a", "mentor-1", "Catch up when you reconnect")
         assert sent["delivered"] is False
-        assert mentor.sent == []
+        # send() now broadcasts mentor_message to mentors for real-time echo
+        assert len(mentor.sent) == 1
+        assert json.loads(mentor.sent[0])["type"] == "mentor_message"
         assert store.list_messages_since("student-a", 0)[0]["delivered_at"] is None
 
         assert await service.ack(sent["message_id"], "student-a") is True
 
         delivered_row = store.list_messages_since("student-a", 0)[0]
         assert delivered_row["delivered_at"] is not None
-        assert [json.loads(text) for text in mentor.sent] == [{
+        # After ack: mentor should have both mentor_message and message_delivered
+        assert len(mentor.sent) == 2
+        assert json.loads(mentor.sent[1]) == {
             "type": "message_delivered",
             "student_id": "student-a",
             "message_id": sent["message_id"],
             "id": sent["id"],
             "timestamp": delivered_row["delivered_at"],
-        }]
+        }
 
     asyncio.run(scenario())
 
@@ -161,6 +165,8 @@ def test_ack_does_not_republish_receipt_when_message_is_already_delivered(tmp_pa
         store.mark_message_delivered(sent["message_id"], student_id="student-a")
 
         assert await service.ack(sent["message_id"], "student-a") is True
-        assert mentor.sent == []
+        # send() delivers mentor_message to mentors; already-delivered ack adds nothing
+        assert len(mentor.sent) == 1
+        assert json.loads(mentor.sent[0])["type"] == "mentor_message"
 
     asyncio.run(scenario())

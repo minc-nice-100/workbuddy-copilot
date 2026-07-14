@@ -69,10 +69,11 @@ class WSRegistry:
     async def _route_mentor_message(self, payload: dict[str, Any]) -> None:
         student_id = str(payload.get("student_id") or "")
         targets = set(self.floats.get(student_id, set()))
-        # Socket success is only a transmission attempt. The durable
-        # delivered state and mentor receipt are emitted exclusively by
-        # MessageService.ack after StudentAgent's REST acknowledgement.
-        await self._fanout(targets, payload)
+        # 同时发给目标学员浮标和全体导师（导师台需要回显）
+        await asyncio.gather(
+            self._fanout(targets, payload),
+            self._fanout(self.mentors, payload),
+        )
 
     async def _route_mentor_command(self, payload: dict[str, Any]) -> None:
         student_id = str(payload.get("student_id") or "")

@@ -1375,12 +1375,37 @@ class SessionStore:
                 })
         return events
 
+    def _mentor_message_timeline_rows(self, c: sqlite3.Connection, session_id: str) -> list[dict]:
+        rows = c.execute(
+            """SELECT id, session_id, student_id, text AS content, created_at,
+                      'mentor_message' AS type,
+                      NULL AS seq_in_session,
+                      NULL AS prompt_id,
+                      NULL AS reply_ref,
+                      NULL AS report_id,
+                      NULL AS severity,
+                      NULL AS understanding,
+                      NULL AS suggestion,
+                      NULL AS is_technical,
+                      NULL AS topic,
+                      NULL AS has_summary,
+                      NULL AS has_full_reply,
+                      mentor_id AS mentor_id,
+                      message_id AS message_id,
+                      delivered_at AS delivered_at
+               FROM mentor_messages
+               WHERE session_id = ?""",
+            (session_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
     def get_timeline_by_session(self, session_id: str) -> list[TimelineEntry]:
         with self._store._conn() as c:
             events = self._prompt_timeline_rows(c, session_id)
             if not events:
                 events = self._bulk_message_timeline_rows(c, session_id)
             events.extend(self._analysis_timeline_rows(c, session_id))
+            events.extend(self._mentor_message_timeline_rows(c, session_id))
             if events:
                 priority = {"prompt": 0, "ai_summary": 1, "analysis": 2}
                 events.sort(key=lambda item: (
