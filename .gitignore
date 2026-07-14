@@ -8,6 +8,7 @@ __pycache__/
 .superpowers/
 .DS_Store
 config.json
+.env
 .workbuddy/memory/*.md
 .workbuddy/
 浮动图标调研报告.md
