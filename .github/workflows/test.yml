@@ -16,8 +16,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install server dependencies
-        run: pip install -r requirements-server.txt
+      - name: Install dependencies
+        run: pip install -r requirements-server.txt pytest
 
       - name: Run server tests
         run: >
