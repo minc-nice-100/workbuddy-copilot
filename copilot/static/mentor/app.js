@@ -437,7 +437,8 @@ function normalizeRestEntry(r) {
     prompt_id: r.prompt_id != null ? r.prompt_id : null,
     reply_ref: r.reply_ref || (r.prompt_id != null ? ('prompt:' + r.prompt_id) : null),
     has_full_reply: !!r.has_full_reply,
-    delivered: true,
+    // mentor_message 的送达状态由 delivered_at 字段决定，无 ack 则为 false
+    delivered: r.type === 'mentor_message' ? !!(r.delivered_at) : true,
   };
 }
 
